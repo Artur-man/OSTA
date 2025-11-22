@@ -6,13 +6,13 @@ Description: This package contains source files for the "Orchestrating Spatial
     analysis workflows for spatial transcriptomics data using Bioconductor in 
     R. The book contains chapters describing individual analysis steps as well 
     as extended workflows, each with examples including R code and datasets.
-Version: 0.99.29
-Date: 2025-10-16
+Version: 1.1.1
+Date: 2025-11-04
 Authors@R: 
     c(person("Helena L.", "Crowell", 
              role=c("aut"), 
              email = "helena@crowell.eu", 
-             comment = c(ORCID="0000-0002-4801-1767")), 
+             comment = c(ORCID = "0000-0002-4801-1767")), 
       person("Mark D.", "Robinson",
              role = c("aut"),
              email = "mark.robinson@mls.uzh.ch",
@@ -42,6 +42,7 @@ Imports:
     BiocFileCache,
     BiocParallel,
     CARDspa,
+    CCPlotR,
     DESpace,
     doMC,
     dplyr,
@@ -76,8 +77,10 @@ Imports:
     rtracklayer,
     scales,
     scater,
+    scider,
     scran,
     scuttle,
+    scRNAseq,
     SFEData,
     SingleR,
     sosta,

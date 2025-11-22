@@ -1,5 +1,7 @@
 # Dimensionality reduction {#sec-ind-dimensionality-reduction}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -154,3 +156,5 @@ ggplot(df, aes(x_centroid, y_centroid, col=rgb)) +
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

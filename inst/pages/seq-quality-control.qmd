@@ -1,5 +1,7 @@
 # Quality control {#sec-seq-quality-control}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -556,3 +558,5 @@ saveRDS(spe_save, file = "seq-spe_qc.rds")
 
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

@@ -1,5 +1,7 @@
 # Reads to counts {#sec-seq-reads-to-counts}
 
+{{< include _start.qmd >}}
+
 ## Background
 
 Sequencing-based Spatial Transcriptomics (sST) platforms employ next-generation sequencing (NGS) to quantify gene expression across spatial locations on a tissue based on spatial barcodes. The spatial location information is encoded during platform manufacture and sample preparation, and associated with transcripts measured during sequencing. This association is present within the structure of the reads sequenced by an NGS platform.
@@ -157,3 +159,5 @@ A vignette demonstrating the workflow of stPipe for some example Visium data is 
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

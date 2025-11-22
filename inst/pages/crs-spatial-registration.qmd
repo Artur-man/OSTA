@@ -1,5 +1,7 @@
 # Spatial registration {#sec-crs-spatial-registration}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -253,3 +255,5 @@ single-cell profiles. Some of these methods could be used through R using packag
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

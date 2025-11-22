@@ -1,5 +1,7 @@
 # Spatial statistics {#sec-ind-spatial-statistics}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -80,3 +82,5 @@ theme_xy <- list(
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

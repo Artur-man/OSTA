@@ -1,0 +1,16 @@
+```{r echo=FALSE}
+.rt <- c()
+knitr::knit_hooks$set(time_it=local({
+    now <- NULL
+    \(before, options) {
+        if (before) {
+            now <<- Sys.time()
+        } else {
+            res <- difftime(Sys.time(), now)
+            .rt <<- c(.rt, res)
+        }
+    }
+}))
+knitr::opts_chunk$set(time_it=TRUE)
+# source: https://bookdown.org/yihui/rmarkdown-cookbook/time-chunk.html
+```

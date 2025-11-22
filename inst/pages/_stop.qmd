@@ -1,0 +1,26 @@
+```{r echo=FALSE}
+doc <- knitr::current_input()
+doc <- gsub("\\..*", "", doc)
+# needed when 'cache = TRUE'
+if (!length(.rt)) .rt <- 0
+new <- data.frame(doc, .rt)
+csv <- "_times.csv"
+if (file.exists(csv)) {
+    old <- read.csv(csv)
+    # check if chapter already listed
+    idx <- which(old[[1]] == doc)
+    if (length(idx)) {
+        # overwrite
+        i <- head(idx, 1)-1
+        j <- tail(idx, 1)+1
+        a <- old[seq(i), ]
+        b <- if (j <= nrow(old))
+            old[seq(j, nrow(old)), ]
+        new <- rbind(a, new, b)
+    } else {
+        # append
+        new <- rbind(old, new)
+    }
+}
+write.csv(new, csv, row.names=FALSE)
+```

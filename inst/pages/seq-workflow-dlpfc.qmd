@@ -1,5 +1,7 @@
 # Workflow: Visium DLPFC {#sec-seq-workflow-dlpfc}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -581,3 +583,5 @@ Thank you for reading this far! In this section we showed you:
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

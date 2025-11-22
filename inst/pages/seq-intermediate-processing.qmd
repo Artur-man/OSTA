@@ -1,5 +1,7 @@
 # Intermediate processing {#sec-seq-intermediate-processing}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -248,3 +250,5 @@ saveRDS(spe, "seq-spe_cl.rds")
 
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

@@ -1,5 +1,7 @@
 # Intermediate processing {#sec-img-intermediate-processing}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -125,3 +127,5 @@ saveRDS(spe, "img-spe_cl.rds")
 
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

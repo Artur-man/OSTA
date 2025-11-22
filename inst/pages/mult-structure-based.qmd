@@ -1,12 +1,14 @@
 # Structure-based analysis {#sec-mult-structure-based}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
 
 Spatial omics data allow us to quantify various features that are related to tissue architecture. This allows us to perform comparisons of anatomical structure-derived features. We will refer to this type of analysis as **structure-based analysis**.
 
-We will use the `r BiocStyle::Biocpkg("sosta")` package to reconstruct and quantify pancreatic islets from human donors suffering different stages of diabetic type 1 (T1D) and healthy controls [@Damond2019-IMC-diabetes]. We will then compare some of the features between conditions.
+We will use the `r BiocStyle::Biocpkg("sosta")` package [@Gunz2025-Sosta] to reconstruct and quantify pancreatic islets from human donors suffering different stages of diabetic type 1 (T1D) and healthy controls [@Damond2019-IMC-diabetes]. We will then compare some of the features between conditions.
 
 
 ### Dependencies
@@ -317,3 +319,5 @@ Additional packages to calculate anatomical structure-derived features include:
 
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

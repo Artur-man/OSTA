@@ -1,5 +1,7 @@
 # Normalization {#sec-ind-normalization}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -163,3 +165,5 @@ This is even clearer when looking at the expression of EPCAM stratified by cell 
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

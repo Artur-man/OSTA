@@ -1,5 +1,7 @@
 # Differential spatial patterns {#sec-mult-diff-spatial-patterns}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -144,3 +146,5 @@ ggplot(dat, aes(factor(day), log_cpm)) +
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

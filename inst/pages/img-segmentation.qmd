@@ -1,5 +1,7 @@
 # Segmentation {#sec-img-segmentation}
 
+{{< include _start.qmd >}}
+
 ## Introduction
 
 Standard imaging-based ST data analysis pipelines rely on microscopy stains to estimate boundaries (e.g., nucleus or cellular membrane), and assign molecular readouts to their cell of origin. Such readouts can be discrete points (e.g., molecule locations) or continuous distributions (e.g., fluorescent intensities); for the latter, a decision with regard to summarization needs to be made (e.g., mean or median). The resulting measurement matrix of features (e.g., genes or proteins) $\times$ observations (e.g., cells or spots) forms the basis for numerous analysis tasks.
@@ -61,3 +63,5 @@ knitr::include_graphics("../images/img-seg_SSAM.jpeg")
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

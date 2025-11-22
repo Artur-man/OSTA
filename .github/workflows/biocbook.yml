@@ -2,6 +2,16 @@ name: biocbook
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["dependencies"]
+    types:
+      - completed
+    branches:
+      - devel
+      - devel-*
+      - RELEASE_**
+      - sandbox
+      - sandbox-*
   push:
     branches:
       - devel
@@ -12,9 +22,12 @@ on:
     paths-ignore:
       - 'README.md' 
       - 'deps.Dockerfile'
+      - 'DESCRIPTION'
 
 jobs:
   build:
+    # Only run if triggered by push/workflow_dispatch, or if triggered by workflow_run and the previous workflow succeeded
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     name: build-book (${{ github.ref_name }})
     permissions:

@@ -1,5 +1,7 @@
 # Workflow: Xenium + Visium {#sec-crs-workflow-xenvis}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Dependencies
@@ -283,3 +285,5 @@ e.g., in order to identify cluster markers, annotate cell subpopulations etc.
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

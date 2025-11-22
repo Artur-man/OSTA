@@ -48,7 +48,7 @@ CosMx (Bruker), Xenium (10x Genomics), and MERSCOPE (Vizgen) datasets into
 by the three providers. 10x Genomics-specific readers are provided by 
 `r BiocStyle::Biocpkg("TENxIO")`, `r BiocStyle::Biocpkg("VisiumIO")`, and 
 `r BiocStyle::Biocpkg("XeniumIO")`; data from most commercial platforms can 
-also be read using `r BiocStyle::Biocpkg("SpatialFeatureExperiment")` function.
+also be read using `r BiocStyle::Biocpkg("SpatialFeatureExperiment")` functions.
 
 ::: {.aside}
 See [@sec-bkg-importing-data] for details on data importing and representation.
@@ -65,47 +65,6 @@ xen$in_tissue <- TRUE
 xen$sample_id <- "Xenium"
 ```
 
-```{r load-data-xen-hide, message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
-# retrieve Xenium dataset from OSF repo
-id <- "Xenium_HumanBreast1_Janesick"
-pa <- OSTA.data_load(id)
-dir.create(td <- tempfile())
-unzip(pa, exdir=td)
-xen <- readXeniumSXE(td)
-
-# add cell boundary polygons
-pol <- metadata(xen)$cell_boundaries
-pol <- readPolygonsXenium(pol, "parquet")
-pol <- pol[match(xen$cell_id, pol$cell_id), ]
-xen$polygons <- pol
-
-# compute cell aspect ratios
-xen$AspectRatio <- apply(pol, 1, \(.) {
-    if (.$is_multi) return(NA)
-    xy <- .$global[[1]]
-    rng <- colRanges(xy)
-    dxy <- rowDiffs(rng)
-    dxy[2]/dxy[1]
-})
-
-# retrieve FOV information
-mol <- metadata(xen)$transcripts
-mol <- read_parquet(mol, as_data_frame=FALSE)
-idx <- pull(mol, "cell_id")
-idx <- match(xen$cell_id, idx)
-fov <- pull(mol[idx, ], "fov")
-
-# add metadata for 'ggspavis' & 'SpaceTrooper'
-xen$in_tissue <- TRUE
-xen$sample_id <- "Xenium"
-metadata(xen)$technology <- "10x_Xenium"
-
-# altExp = negative & blank codes, metadata include
-# transcripts = molecule coordinates (.pq file)
-# cell/nucleus_boundaries = segmentation (.pq files)
-xen
-```
-
 ### From CosMx
 
 To load the CosMx data into a `SpatialExperiment` object, 
@@ -114,8 +73,7 @@ To not confuse RNA target counts with counts stemming from either negative
 probes and system controls, the latter are moved into `altExp`s by default.
 We also add additional `colData` and `metadata` slots that are expected by 
 `r BiocStyle::Biocpkg("ggspavis")` (for visualization) and 
-`r BiocStyle::Biocpkg("SpaceTrooper")` (for analysis);
-see comments in the following code chunks.
+`r BiocStyle::Biocpkg("SpaceTrooper")` (for analysis). In particular, `r BiocStyle::Biocpkg("SpaceTrooper")`'s `updateCosmxSPE` function takes care of standardizing the object's `colData` for use with `r BiocStyle::Biocpkg("SpaceTrooper")`'s functions.
 
 ::: {.aside}
 See @sec-img-introduction for details on the three main types 
@@ -125,28 +83,14 @@ of barcodes: RNA targets, negative probes, and system controls.
 ```{r load-data-cos, message=FALSE, warning=FALSE}
 # retrieve CosMx dataset from OSF repo
 id <- "CosMx1k_MouseBrain2"
-pa <- OSTA.data_load(id)
+pa <- OSTA.data_load(id, mol=FALSE)
 dir.create(td <- tempfile())
 unzip(pa, exdir=td)
-cos <- readCosmxSXE(td)
-
-# add cell boundary polygons
-pol <- metadata(cos)$polygons
-pol <- readPolygonsCosmx(pol, "parquet")
-idx <- sprintf("f%s_c%s", cos$fov, cos$cell_ID)
-cos$polygons <- pol[match(idx, pol$cell_id), ]
-
-# add metadata for 'ggspavis' & 'SpaceTrooper'
+cos <- readCosmxSXE(td, addTx=FALSE)
+# prepare data for 'SpaceTrooper' 
+cos <- updateCosmxSPE(cos, td, sampleName="CosMx")
+cos <- readAndAddPolygonsToSPE(cos)
 cos$in_tissue <- TRUE
-cos$sample_id <- "CosMx"
-cos$cell_id <- colnames(cos)
-metadata(cos)$technology <- "Nanostring_CosMx"
-metadata(cos)$fov_dim <- c(xdim=4256, ydim=4256)
-
-# altExp = negative probes, metadata include:
-# transcripts = molecule coordinates (.pq file)
-# polygons = segmentation boundaries (.pq file)
-# fov_pos = FOV corner coordinates (data.frame)
 cos
 ```
 
@@ -161,8 +105,8 @@ This is useful to have a global bird's-eye-view of the tissue.
 ```{r plot-xy, fig.width=10, fig.height=5}
 # spatial plots for datasets acquired through
 # Xenium & CosMx (points = cell centroids)
-plotCoords(xen, point_size=0) + ggtitle("Xenium") +
-plotCoords(cos, point_size=0) + ggtitle("CosMx") 
+plotCoords(xen, point_size=0, y_reverse = FALSE) + ggtitle(xen$sample_id) +
+plotCoords(cos, point_size=0, y_reverse = FALSE) + ggtitle(cos$sample_id)
 ```
 
 ## General QC metrics
@@ -223,7 +167,7 @@ Here, we show the distribution of mean IF intensities across the CosMx sample.
 flu <- grepv("^Mean", names(colData(cos)))
 lapply(flu, \(.) {
     cos[[.]] <- asinh(cos[[.]]/10)
-    plotCoords(cos, annotate=., point_size=0)
+    plotCoords(cos, annotate=., point_size=0, y_reverse = FALSE)
 }) |>
     wrap_plots(nrow=1) &
     theme(
@@ -240,16 +184,11 @@ gc()
 
 ### Morphology
 
-`SpaceTrooper`'s `spatialPerCellQC` function can be used to compute a set of 
+`r BiocStyle::Biocpkg("SpaceTrooper")`'s `spatialPerCellQC` function can be used to compute a set of 
 metrics that are particular to imaging-based ST data; examples listed below.
 In addition, the function incorporates an internal call to `perCellQCMetrics`
 from the `r BiocStyle::Biocpkg("scuttle")` package, to compute some standard 
 scRNA-seq QC metrics on an `altExp`; here, we specify using negatives probes.
-
-- `Area_um`: area in microns
-- `CountArea`: count density = number of transcripts per area
-- `log2AspectRatio`: log2 of the aspect ratio (x-/y-axis) of each cell
-- `ctrl_total_ratio`: proportion of negative probe counts over total counts
 
 ::: {.aside}
 Note that metrics also include each cell's distance from horizontal/vertical
@@ -270,6 +209,14 @@ setdiff(names(colData(cos)), old)
 # to reduce memory usage for building book with GitHub Actions
 gc()
 ```
+
+In particular, the following metrics have been added to the `colData`:
+
+- `Area_um`: area in microns
+- `CountArea`: count density = number of transcripts per area
+- `log2AspectRatio`: log2 of the aspect ratio (x-/y-axis) of each cell
+- `ctrl_total_ratio`: proportion of negative probe counts over total counts
+
 
 ### Counts \& area
 
@@ -315,7 +262,7 @@ lapply(c("cell_area", "total_counts"), \(.) {
     qs <- quantile(val, c(0.01, 0.99))
     val <- ifelse(val < qs[1], qs[1], ifelse(val > qs[2], qs[2], val))
     xen[[.]] <- val
-    plotCoords(xen, annotate=., point_size=0) +
+    plotCoords(xen, annotate=., point_size=0, y_reverse = FALSE) +
         theme(legend.key.width=unit(0.5, "lines")) +
         scale_color_gradientn(colors=unname(pals::jet()), trans="log10")
 }) |> wrap_plots(nrow=1)
@@ -341,7 +288,7 @@ However, this dependency is not always linear and may exhibit a bimodal distribu
 
 In some cases, a peculiar count-area distribution might be indicative of 
 segmentation problems. Undersegmentation (i.e., when groups of cells are 
-merged together) we might observe fewer counts than expected for a given 
+merged together) might lead to fewer counts than expected for a given 
 area (e.g., when they are far apart and empty space is being segmented).
 [An useful metric to explore this issue is the `log2CountArea`, 
 which estimates the transcript density for each cell.]{.aside}
@@ -359,7 +306,7 @@ object resulting from a CosMx data import will include the FOV of each cell,
 but it is sometimes tricky to understand (or remember) the relative position 
 of each FOV within the slide. 
 
-`SpaceTrooper`'s `plotZoomFovsMap` function provides an easy way to map FOVs 
+`r BiocStyle::Biocpkg("SpaceTrooper")`'s `plotZoomFovsMap` function provides an easy way to map FOVs 
 within the slide, allowing to zoom in on a subset of FOVs, while visualizing 
 the global structure of the tissue.
 
@@ -475,8 +422,7 @@ cos$ex <- df$dist_border < r
 plotCentroids(cos, colourBy="ex", sampleId=NULL) +
     scale_color_manual(values=c("lavender", "blue")) +
     guides(col=guide_legend(override.aes=list(size=2))) +
-    theme_void() + theme(legend.key.size=unit(0, "pt")) +
-    scale_y_reverse() # needed to align with 'ggspavis'
+    theme_void() + theme(legend.key.size=unit(0, "pt"))
     
 # zoom in on subset of FOVs
 # visualizing cell boundaries
@@ -485,7 +431,7 @@ plotPolygons(
     cos[, cos$fov %in% fs], 
     colourBy="ex", sampleId=NULL,
     borderCol="black", palette=c("lavender", "blue")) +
-    theme(legend.position="none") + scale_y_reverse()
+    theme(legend.position="none")
 ```
 
 ## Identifying low-quality cells
@@ -522,17 +468,23 @@ for total counts and `r sum(cos$Area_um_outlier_mc != "NO")` outliers for area.
 
 Finally, we can compute an aggregated quality score, which combines a cell's 
 transcript density, aspect ratio and (for CosMx) distance from FOV borders.
-Here, `computeQScore()` will add a (numeric) `quality_score`, 
-and `computeQScoreFlags` will add a (logical) `low_qscore` slot
+
+Specifically, `r BiocStyle::Biocpkg("SpaceTrooper")`'s `computeQCScore` function will compute a combined quality score based on count density (`log2CountArea`), cell aspect ratio (`log2AspectRatio`), only for cells closer than a specified distance from FOV borders, and control-to-total count ratio (`log2Ctrl_total_ratio`). The count density is computed as the ratio between the per cell total gene counts divided by the cell area; the aspect ratio represents FOV border effect typical of CosMx datasets; the control-to-total ratio is the ratio between counts for control probes and total counts per cell and represents aspecific signal.
+
+::: {.aside}
+The quality score is computed using a ridge logistic regression model, which predicts a score between 0 and 1, where higher scores indicate better quality cells, using the following model forumla: `~(log2CountArea + Area_um + log2Ctrl_total_ratio + I(abs(log2AspectRatio) * as.numeric(dist_border<50)))^2`, where the `^2` notation indicates all pairwise interactions among the included variables. See `?computeQCScore` for details.
+:::
+
+Here, `computeQCScore()` will add a (numeric) `QC_score`, 
+and `computeQCScoreFlags` will add a (logical) `low_qcscore` slot
 to the input SPE's `colData`; the latter flags low-quality cells.
 
 ```{r SpaceTrooper-calc-score, message=FALSE}
 # compute quality scores & flag cell's that
 # fall below specified percentile threshold
-cos <- computeQScore(cos)
-cos <- computeQScoreFlags(cos, 
-    qsThreshold=0.1, 
-    useQSQuantiles=TRUE)
+cos <- computeQCScore(cos)
+cos <- computeQCScoreFlags(cos, 
+    qsThreshold=0.5)
 
 # the following slots have now been 
 # added to the object's cell metadata
@@ -544,18 +496,15 @@ head(colData(cos)[sco])
 ```{r SpaceTrooper-plot-score, message=FALSE, fig.width=10, fig.height=5}
 #| code-fold: true
 # visualize quality scores & highlight flagged cells
-thm <- list(
-    theme_void(), ggtitle(""), 
-    coord_equal(), scale_y_reverse())
-plotCentroids(cos, colourBy="quality_score") + thm +
-plotCentroids(cos, colourBy="low_qscore") + thm +
+thm <- list(theme_void(), ggtitle(""), coord_equal())
+plotCentroids(cos, colourBy="QC_score") + thm +
+plotCentroids(cos, colourBy="low_qcscore") + thm +
     guides(col=guide_legend(override.aes=list(size=2))) +
     scale_color_manual(values=c("lavender", "blue")) +
     theme(legend.key.size=unit(0, "pt")) 
 ```
 
-We can see how the quality score flags several cells close to the tissue borders 
-in the CosMx data and cells in the bottom-center damaged area in the Xenium data.
+We can see how the QC score flags several cells close to the tissue border as well as cells close to the FOVs borders. 
 
 ## Filtering {#sec-img-quality-control-fil}
 
@@ -592,11 +541,11 @@ mean(ex <- ol |
 ```
 
 For the CosMx dataset, we might filter based on `SpaceTrooper`s quality score,
-which would exclude about `r round(100*mean(cos$low_qscore))`\% of cells.
+which would exclude about `r round(100*mean(cos$low_qcscore))`\% of cells.
 
 ```{r cos-ex}
 # fraction of low-quality CosMx cells
-mean(cos$low_qscore)
+mean(cos$low_qcscore)
 ```
 
 ## Conclusion
@@ -604,12 +553,12 @@ mean(cos$low_qscore)
 In a stringent analysis, we may want to remove low-quality cells, but this has 
 to be done with caution: **before excluding any cells, it is recommendable to 
 inspect where these fall in the tissue**. We would expect low-quality cells to 
-be distributed randomly, and otherwise to accumulate at the tissue borders or 
+be distributed randomly, and otherwise to accumulate at the tissue or FOV borders or 
 in regions were tissue was, for example, smudged, detached, necrotic etc.
 
 In general, **spatially organized clusters of excluded cells might indicate a 
-bias towards exclude specific types of cells** (e.g., some immune cells tend to 
-be smaller or might otherwise contain fewer contains due to the panel design).
+bias towards excluding specific types of cells** (e.g., some immune cells tend to 
+be smaller or might otherwise contain fewer transcripts due to the panel design).
 Whenever possible, we advice readers to cross-check visualizations like the 
 following with a corresponding H&E stain of the tissue, considering possible 
 experimental faults as well as their prior knowledge on tissue pathology.
@@ -621,9 +570,9 @@ i <- setdiff(
     spatialCoordsNames(cos))
 colData(cos) <- cd[i] 
 # add for visualization
-xen$ex <- ex; cos$ex <- cos$low_qscore
-plotCoords(xen, annotate="ex", point_size=0) + ggtitle("Xenium") +
-plotCoords(cos, annotate="ex", point_size=0) + ggtitle("CosMx") +
+xen$ex <- ex; cos$ex <- cos$low_qcscore
+plotCoords(xen, annotate="ex", point_size=0, y_reverse = FALSE) + ggtitle("Xenium") +
+plotCoords(cos, annotate="ex", point_size=0, y_reverse = FALSE) + ggtitle("CosMx") +
     plot_layout(guides="collect") &
     theme(legend.key.size=unit(0, "pt")) &
     scale_color_manual(values=c("lavender", "blue")) &

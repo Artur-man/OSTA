@@ -1,5 +1,7 @@
 # Spatial omics {#sec-bkg-spatial-omics}
 
+{{< include _start.qmd >}}
+
 ## Introduction
 
 Spatial omics (or spatially-resolved omics) refers to a set of recently-developed technologies that enable molecular measurements (e.g. gene expression) with spatial resolution. Spatially-resolved transcriptomics and spatial proteomics were named the **Method of the Year 2020** [@MethodOfYear2020] and **Method of the Year 2024** [@MethodOfYear2024] by the journal *Nature Methods*, and have each become widely applied in a range of biological contexts.
@@ -60,3 +62,5 @@ Another emerging modality within a spatial context is the measurement of metabol
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

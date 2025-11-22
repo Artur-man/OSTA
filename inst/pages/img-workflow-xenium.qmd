@@ -1,5 +1,7 @@
 # Workflow: Xenium {#sec-img-workflow-xenium}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -309,3 +311,5 @@ plotGroupedHeatmap(sub,
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

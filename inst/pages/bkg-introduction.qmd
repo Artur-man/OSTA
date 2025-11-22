@@ -1,5 +1,7 @@
 # Introduction {#sec-bkg-introduction}
 
+{{< include _start.qmd >}}
+
 ## Introduction
 
 This book provides reproducible examples and discussion on computational analysis workflows for spatial omics data using [Bioconductor](https://bioconductor.org/) in R. The book contains chapters describing individual analysis steps as well as extended workflows, each with examples including R code and datasets. In some examples, R code is also integrated with Python tools.
@@ -63,3 +65,5 @@ We welcome feedback, suggestions, and contributions from readers in the research
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

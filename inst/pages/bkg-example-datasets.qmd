@@ -1,5 +1,7 @@
 # Example datasets {#sec-bkg-example-datasets}
 
+{{< include _start.qmd >}}
+
 ## Introduction
 
 For the examples in this book, we will rely on a set of publicly available datasets that cover different sequencing-based and imaging-based platforms, namely: Visium, Visium HD, Xenium (10x Genomics), and CosMx (Bruker).
@@ -105,3 +107,5 @@ The CosMx human prefrontal cortex sample has a larger gene panel of \~6,000 RNA 
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

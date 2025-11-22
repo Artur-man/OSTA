@@ -1,5 +1,7 @@
 # Differential colocalization {#sec-mult-diff-colocalization}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -346,3 +348,5 @@ pancreatic islets are more affected than those further away.
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

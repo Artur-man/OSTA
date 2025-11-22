@@ -1,5 +1,7 @@
 # Feature selection & testing {#sec-ind-feature-selection-testing}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -350,3 +352,5 @@ wrap_plots(plots, ncol = 3)
 
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

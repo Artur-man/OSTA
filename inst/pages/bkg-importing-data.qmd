@@ -1,5 +1,7 @@
 # Importing data {#sec-bkg-importing-data}
 
+{{< include _start.qmd >}}
+
 ## Introduction
 
 This chapter provides details on how to import data into R as Bioconductor-based data classes (@sec-bkg-infrastructure). First, we provide an overview of the raw data structure, followed by an explanation of how to read the raw data into R.
@@ -124,11 +126,4 @@ Examples showing how to read in raw data into R using functions from the Biocond
 
 In addition, the `r BiocStyle::Biocpkg("STexampleData")` package provides access to pre-formatted datasets from several platforms in `SpatialExperiment` and `SingleCellExperiment` formats, which are used in several examples in this book.
 
-
-<!--
-
-## Appendix
-
-### References {.unnumbered}
-
--->
+{{< include _stop.qmd >}}

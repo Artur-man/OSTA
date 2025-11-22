@@ -1,5 +1,7 @@
 # Deconvolution {#sec-seq-deconvolution}
 
+{{< include _start.qmd >}}
+
 ## Introduction
 
 Sequencing-based ST data can contain zero to multiple cells per spot, which might be fully or only partially covered by cells, depending on the spatial resolution of the platform and the tissue cell density (see also @sec-seq-introduction and the schematic Figure below). This aspect of the data implies that there may be a mixture of cell types in a spot and thus a mixture of transcriptional programs.
@@ -460,3 +462,5 @@ Benchmarking studies of deconvolution methods often require generating synthetic
 
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

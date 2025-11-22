@@ -1,5 +1,7 @@
 # Workflow: Visium CRC {#sec-seq-workflow-visium-crc}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -384,3 +386,5 @@ pheatmap(cm,
 ## Appendix
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

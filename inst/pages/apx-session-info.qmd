@@ -1,5 +1,38 @@
 # Session information {#sec-apx-session-info}
 
+## Runtimes {-}
+
+Chapters without code are greyed out, slowest chapters 
+highlighted in bold, and Σ = overall runtime (hh:mm:ss).
+
+<!-- optional; used to limit output width/height-->
+::: {style="max-width:400px; max-height:2000px; overflow-y: auto;"}
+
+```{r echo=FALSE}
+df <- read.csv("_times.csv")
+# needed to keep order fixed
+df[[1]] <- factor(df[[1]], unique(df[[1]]))
+# sum runtimes by chapter
+df <- array2DF(by(df[[2]], df[[1]], sum))
+# grey out chapters w/o code
+.f <- \(.) sprintf("<span style='color:#d3d3d3'> %s <span/>", .)
+df[[1]][na] <- .f(df[[1]][na <- df[[2]] < 1])
+# highlight slowest chapters
+bf <- head(order(df[[2]], decreasing=TRUE), 10)
+bf <- intersect(bf, which(!na))
+#bf <- intersect(bf, which(!na))
+df[[1]][bf] <- sprintf("<b> %s </b>", df[[1]][bf])
+# append overall runtime
+fd <- data.frame(a="Σ", b=sum(df[[2]]))
+df <- rbind(setNames(df, c("a", "b")), fd)
+# prettify time formatting
+df[[2]] <- as.POSIXct(df[[2]], tz="GMT")
+df[[2]] <- format(df[[2]], "%H:%M:%S")
+knitr::kable(df, col.names=NULL)
+```
+
+:::
+
 ## Session info {-}
 
 Session information from the current build of the book.

@@ -1,5 +1,7 @@
 # Introduction {#sec-img-introduction}
 
+{{< include _start.qmd >}}
+
 ## Introduction to imaging-based ST
 
 Imaging-based ST assays have gone from resolving 100s to 1000s of features.
@@ -81,3 +83,5 @@ The [Vizgen MERSCOPE](https://vizgen.com/products/) platform, among the fluoresc
 
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}

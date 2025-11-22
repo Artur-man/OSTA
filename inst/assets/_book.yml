@@ -28,8 +28,10 @@ book:
         - pages/img-quality-control.qmd
         - pages/img-intermediate-processing.qmd
         - pages/img-neighborhood-analysis.qmd
-#        - pages/img-cell-cell-communication.qmd
+        - pages/img-cell-cell-communication.qmd
+        - pages/img-sub-cellular-analysis.qmd
         - pages/img-workflow-xenium.qmd
+        - pages/img-workflow-cosmx.qmd
     - part: "Platform-independent analyses"
       chapters:
         - pages/ind-normalization.qmd

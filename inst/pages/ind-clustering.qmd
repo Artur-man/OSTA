@@ -1,5 +1,7 @@
 # Clustering {#sec-ind-clustering}
 
+{{< include _start.qmd >}}
+
 ## Preamble
 
 ### Introduction
@@ -314,3 +316,5 @@ pheatmap(mat=t(assay(pbs)), scale="column", breaks=seq(-2, 2, length=101))
 
 
 ### References {.unnumbered}
+
+{{< include _stop.qmd >}}
