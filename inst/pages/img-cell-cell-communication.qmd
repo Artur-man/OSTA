@@ -422,5 +422,3 @@ of spatially resolved data with non-spatial approaches.
 - `r BiocStyle::Githubpkg("zcang/SpaOTsc")` [@Cang2020-SpaOTsc] relies on optimal transport to segregate signal in a spatial region into LRs and their downstream genes, yielding information on regulatory flows between cells. 
 
 ### References {.unnumbered}
-
-{{< include _stop.qmd >}}
