@@ -25,7 +25,7 @@ Data structures for storing data from spatial transcriptomics and other spatial 
 
 - [**AnnData**](https://anndata.readthedocs.io/en/latest/): Python class for storing single-cell and spatial data in the [scverse](https://scverse.org/) framework.
 
-- [**Giotto classes**](https://drieslab.github.io/Giotto_website/articles/structure.html): R classes used to store spatial omics data within the [Giotto Suite](https://drieslab.github.io/Giotto_website/index.html) framework [@Chen2023-Giotto-Suite; @Dries2021-Giotto].
+- [**Giotto classes**](https://drieslab.github.io/Giotto_website/articles/structure.html): R classes used to store spatial omics data within the [Giotto Suite](https://drieslab.github.io/Giotto_website/index.html) framework [@Chen2025-Giotto-Suite; @Dries2021-Giotto].
 
 - [**SpatialData**](https://spatialdata.scverse.org/en/latest/): Python class for storing data from spatial transcriptomics and other spatial omics platforms.
 
