@@ -78,7 +78,13 @@ Next, we create a Conda environment and install some key dependencies.
 
 If you are using an existing Python installation on your system (instead of installing Miniconda), this can be specified with the argument `conda = ...` -- i.e. specify the path to the `conda` binary from the existing Python installation to use.
 
-```{r conda-create, warning=FALSE, message=FALSE, results="hide"}
+```{r conda-create, warning=FALSE, message=FALSE, results="hide", include=FALSE}
+env <- "py-interop"
+conda_create(env, environment = system.file("extdata", "environment.yml", package="OSTA"))
+use_condaenv(env, required=TRUE)
+```
+
+```{r conda-create, warning=FALSE, message=FALSE, results="hide", eval=FALSE}
 # create conda environment
 env <- "py-interop"
 # specify 'conda=...' in 'conda_create()'
@@ -94,7 +100,7 @@ conda_list()$name
 
 The following dependencies are needed in some of the following chapters, and need to be installed from `conda-forge`. This can also be skipped if you are only running the examples in this chapter. We install these dependencies here so that we can re-use this Conda environment again in later chapters.
 
-```{r deps-conda-forge, warning=FALSE, message=FALSE, results="hide"}
+```{r deps-conda-forge, warning=FALSE, message=FALSE, results="hide", eval=FALSE}
 # install dependencies that need to be 
 # installed from conda-forge (not PyPI)
 conda_install(
@@ -106,7 +112,7 @@ conda_install(
 
 The following dependencies are necessary for the examples in this chapter. These are installed from PyPI.
 
-```{r deps-pypi, warning=FALSE, message=FALSE, results="hide"}
+```{r deps-pypi, warning=FALSE, message=FALSE, results="hide", eval=FALSE}
 # install Python packages from PyPI
 conda_install(
     pip=TRUE, 
