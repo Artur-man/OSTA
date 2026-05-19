@@ -20,8 +20,7 @@ library(SpatialExperiment)
 library(STexampleData)
 library(ggspavis)
 library(patchwork)
-library(scater)
-library(scran)
+library(scrapper)
 library(pheatmap)
 ```
 
@@ -50,7 +49,7 @@ plotCoords(spe)
 
 ### Quality control (QC)
 
-We calculate quality control (QC) metrics using the `r BiocStyle::Biocpkg("scater")` package [@McCarthy2017-scater], and apply simple global thresholding-based QC methods to identify any low-quality spots, as described in @sec-seq-quality-control-global. More details, including more advanced QC approaches, are described in @sec-seq-quality-control.
+We calculate quality control (QC) metrics using the `r BiocStyle::Biocpkg("scrapper")` package, and apply simple global thresholding-based QC methods to identify any low-quality spots, as described in @sec-seq-quality-control-global. More details, including more advanced QC approaches, are described in @sec-seq-quality-control.
 
 ```{r in-tissue}
 # subset to keep only spots over tissue
@@ -66,11 +65,11 @@ table(is_mito)
 nms[is_mito]
 ```
 
-Calculate QC metrics using `r BiocStyle::Biocpkg("scater")` [@McCarthy2017-scater].
+Calculate QC metrics using `r BiocStyle::Biocpkg("scrapper")`.
 
 ```{r qc}
 # calculate per-spot QC metrics and store in colData
-spe <- addPerCellQC(spe, subsets=list(mito=is_mito))
+spe <- quickRnaQc.se(spe, subsets=list(mito=is_mito))
 names(colData(spe))
 ```
 
@@ -81,15 +80,16 @@ Select global filtering thresholds for the QC metrics by examining distributions
 par(mfrow=c(1, 4))
 hist(spe$sum, xlab="sum", main="UMIs per spot")
 hist(spe$detected, xlab="detected", main="Genes per spot")
-hist(spe$subsets_mito_percent, xlab="pct mito", main="Percent mito UMIs")
+hist(spe$subset.proportion.mito, xlab="proportion mito", main="Proportion mito UMIs")
 hist(spe$cell_count, xlab="no. cells", main="No. cells per spot")
+par(mfrow=c(1, 1))
 ```
 
 ```{r qc-thresholds}
 # select global QC thresholds
 spe$qc_lib_size <- spe$sum < 600
 spe$qc_detected <- spe$detected < 400
-spe$qc_mito <- spe$subsets_mito_percent > 28
+spe$qc_mito <- spe$subset.proportion.mito > 0.28
 
 # tabulate flagged cells
 cd <- colData(spe)
@@ -125,7 +125,7 @@ Select spots to discard by combining the sets of identified low-quality spots ac
 ex <- cbind(spe$qc_lib_size, spe$qc_detected, spe$qc_mito)
 apply(ex, 2, sum)
 # combined set of identified spots
-spe$discard <- rowAnys(ex)
+spe$discard <- rowSums(ex) > 0
 table(spe$discard)
 ```
 
@@ -147,23 +147,22 @@ dim(spe)
 
 ### Normalization
 
-Calculate log-transformed normalized counts (logcounts) using library size normalization, as described in @sec-seq-intermediate-processing-norm. We use methods from the `r BiocStyle::Biocpkg("scater")` [@McCarthy2017-scater] and `r BiocStyle::Biocpkg("scran")` [@Lun2016-scran] packages, making the simplified assumption that spots can be treated as equivalent to single cells. For more details and other options, see @sec-seq-intermediate-processing.
+Calculate log-transformed normalized counts (logcounts) using library size normalization, as described in @sec-seq-intermediate-processing-norm. We use methods from the `r BiocStyle::Biocpkg("scrapper")` package, making the simplified assumption that spots can be treated as equivalent to single cells. For more details and other options, see @sec-seq-intermediate-processing.
 
 ```{r, fig.height=3.5}
-# calculate library size factors
-spe <- computeLibraryFactors(spe)
+# calculate logcounts using library size factors
+spe <- normalizeRnaCounts.se(spe)
+
 summary(sf <- sizeFactors(spe))
 hist(sf, breaks=20, main="Histogram of size factors")
 
-# calculate 'logcounts'
-spe <- logNormCounts(spe)
 assayNames(spe)
 ```
 
 
 ### Feature selection (HVGs)
 
-Apply feature selection methods to identify a set of top highly variable genes (HVGs). We use methods from the `r BiocStyle::Biocpkg("scran")` [@Lun2016-scran] package, again making the simplified assumption that spots can be treated as equivalent to single cells. We also first remove mitochondrial genes, since these tend to be very highly expressed and are not of main biological interest. For more details, see @sec-seq-intermediate-processing.
+Apply feature selection methods to identify a set of top highly variable genes (HVGs). We use methods from the `r BiocStyle::Biocpkg("scrapper")` package, again making the simplified assumption that spots can be treated as equivalent to single cells. We also first remove mitochondrial genes, since these tend to be very highly expressed and are not of main biological interest. For more details, see @sec-seq-intermediate-processing.
 
 For details on alternative feature selection methods to identify spatially variable genes (SVGs) instead of HVGs, for example using the `r BiocStyle::Biocpkg("nnSVG")` [@Weber2023-nnSVG] or other packages, see @sec-ind-feature-selection-testing-svgs.
 
@@ -174,12 +173,14 @@ dim(spe)
 ```
 
 ```{r hvgs, message=FALSE, fig.width=6, fig.height=5}
-# fit mean-variance relationship, decomposing 
-# variance into technical & biological components
-dec <- modelGeneVar(spe)
+# fit mean-variance relationship and select top HVGs
+spe <- chooseRnaHvgs.se(
+    spe,
+    top=ceiling(0.1 * nrow(spe)),
+    more.var.args=list(use.min.width=TRUE))
 
 # select top HVGs
-hvg <- getTopHVGs(dec, prop=0.1)
+hvg <- rownames(spe)[rowData(spe)$hvg]
 length(hvg)
 ```
 
@@ -188,15 +189,17 @@ length(hvg)
 
 Next, we perform dimensionality reduction using principal component analysis (PCA), applied to the set of top HVGs. We retain the top 50 principal components (PCs) for further downstream analyses. This is done both to reduce noise and to improve computational efficiency. We also run UMAP on the set of top 50 PCs and retain the top 2 UMAP components for visualization purposes.
 
-We use the computationally efficient implementation of PCA from the `r BiocStyle::Biocpkg("scater")` package [@McCarthy2017-scater], which uses randomization and therefore requires setting a random seed for reproducibility.
+We use the computationally efficient implementation of PCA from the `r BiocStyle::Biocpkg("scrapper")` package, which uses randomization and therefore requires setting a random seed for reproducibility.
 
 See @sec-seq-intermediate-processing and @sec-ind-dimensionality-reduction for more details.
 
 ```{r}
-# using 'scater' package
+# using 'scrapper' package
 set.seed(123)
-spe <- runPCA(spe, subset_row=hvg)
-spe <- runUMAP(spe, dimred="PCA")
+spe <- runPca.se(spe, features=hvg, number=50)
+colnames(reducedDim(spe, "PCA")) <- paste0(
+    "PC", seq_len(ncol(reducedDim(spe, "PCA"))))
+spe <- runUmap.se(spe, reddim.type="PCA")
 colnames(reducedDim(spe, "UMAP")) <- paste0("UMAP", 1:2)
 
 # embeddings are matrices with
@@ -211,19 +214,24 @@ sapply(reducedDims(spe), dim)
 
 Next, we apply a clustering algorithm to identify cell types or spatial domains. Note that we are using only molecular features (gene expression) as the input for clustering in this example. Alternatively, we could use a spatially-aware clustering algorithm, as demonstrated in the example in @sec-seq-intermediate-processing-clustering.
 
-Here, we use graph-based clustering using the Walktrap method implemented in `r BiocStyle::Biocpkg("scran")`, applied to the top 50 PCs calculated on the set of top HVGs from above.
+Here, we use graph-based clustering using the Leiden method implemented in `r BiocStyle::Biocpkg("scrapper")`, applied to the top 50 PCs calculated on the set of top HVGs from above.
 
 For more details on clustering, see @sec-ind-clustering.
 
 ```{r}
 # graph-based clustering
 set.seed(123)
-g <- buildSNNGraph(spe, k=10, use.dimred="PCA")
-g_walk <- igraph::cluster_walktrap(g)
-table(kid <- g_walk$membership)
+spe <- clusterGraph.se(
+    spe,
+    num.neighbors=10,
+    method="leiden",
+    resolution=1,
+    reddim.type="PCA",
+    output.name="label")
+table(spe$label)
 
 # store cluster labels in column 'label' in colData
-colLabels(spe) <- factor(kid)
+colLabels(spe) <- factor(spe$label)
 ```
 
 Visualize the cluster labels by plotting in x-y space, alongside the manually annotated reference labels (`ground_truth`) available for this dataset.
@@ -242,32 +250,32 @@ plotDimRed(spe, plot_type="UMAP", annotate="label", pal="libd_layer_colors")
 ```
 
 
-### Differential expression
+### Marker genes
 
 <!-- To do: maybe flip with seq-processing chapter - more details here -->
 
-Identify marker genes for each cluster or spatial domain by testing for differentially expressed genes using pairwise t-tests, specifically testing for upregulation for each cluster or spatial domain.
+Identify marker genes for each cluster or spatial domain by scoring candidate marker genes using pairwise effect sizes, specifically selecting genes with higher expression in each cluster or spatial domain.
 
-We use the `r BiocStyle::Biocpkg("scran")` package [@Lun2016-scran] to calculate the differential tests. We use a binomial test, which is a more stringent test than the default pairwise t-tests, and tends to select genes that are easier to interpret and validate experimentally.
+We use the `r BiocStyle::Biocpkg("scrapper")` package to calculate marker scores, and select genes that are easier to interpret and validate experimentally.
 
 See @sec-seq-intermediate-processing or @sec-ind-clustering for more details.
 
 ```{r}
-# using scran package
-mgs <- findMarkers(spe, groups=spe$label, test="binom", direction="up")
-top <- lapply(mgs, \(df) rownames(df)[df$Top <= 2])
+# using scrapper package
+mgs <- scoreMarkers.se(spe, groups=spe$label)
+top <- lapply(mgs, \(df) rownames(df)[df$cohens.d.min.rank <= 2])
 length(top <- unique(unlist(top)))
 ```
 
 Visualize the marker genes using a heatmap.
 
 ```{r, fig.width=9, fig.height=3}
-pbs <- aggregateAcrossCells(spe, 
-    ids=spe$label, subset.row=top,
-    use.assay.type="logcounts", statistics="mean")
+pbs <- aggregateAcrossCells.se(
+    spe[top, ], factors=spe$label, assay.type="logcounts")
+means <- t(t(assay(pbs, "sums")) / pbs$counts)
 
 # use gene symbols as feature names
-mtx <- t(assay(pbs))
+mtx <- t(means)
 colnames(mtx) <- rowData(pbs)$gene_name
 
 # plot using pheatmap package
@@ -315,11 +323,11 @@ library(BiocFileCache)  # for downloading and storing data
 library(rtracklayer)  # for importing gene annotation files
 ```
 
-In addition, we will modify the final step of the workflow above, where we identified marker genes per cluster by differential expression testing. We will modify this step to summarize the results of the differential expression testing in a different way, and store this information in the `spe` object.
+In addition, we will modify the final step of the workflow above, where we identified marker genes per cluster using marker scores. We will modify this step to summarize the results in a different way, and store this information in the `spe` object.
 
 ```{r spatiallibd-markers}
 # identify interesting markers for each cluster
-interesting <- sapply(mgs, function(x) x$Top <= 5)
+interesting <- sapply(mgs, function(x) x$cohens.d.min.rank <= 5)
 colnames(interesting) <- paste0("gene_interest_", seq_len(length(mgs)))
 rowData(spe) <- cbind(rowData(spe), interesting)
 ```
@@ -497,10 +505,7 @@ if (interactive()) {
             "expr_chrM_ratio",
             "sum",
             "detected",
-            "subsets_mito_sum",
-            "subsets_mito_detected",
-            "subsets_mito_percent",
-            "total",
+            "subset.proportion.mito",
             "sizeFactor"
         ),
         default_cluster="label"
