@@ -20,13 +20,12 @@ We further compare these to DEGs as well as HVGs, and discuss the conceptual sim
 ```{r deps, message=FALSE, warning=FALSE}
 library(DESpace)
 library(dplyr)
-library(ggspavis)
 library(ggrepel)
+library(ggspavis)
 library(nnSVG)
 library(patchwork)
 library(pheatmap)
-library(scater)
-library(scran)
+library(scrapper)
 library(SpatialExperiment)
 library(tidyr)
 ```
@@ -60,23 +59,21 @@ Secondly, HVGs may be selected based on their rank, using a fixed number `n` or 
 [A more stringent selection may be obtained by also adding an `FDR.threshold` on the significance of large variances *relative* to other genes.]{.aside}
 
 ```{r hvg}
-# fit mean-variance relationship, decomposing 
-# variance into technical & biological components
-dec <- modelGeneVar(spe)
-
-# select top 2,000 ranked genes (in terms
-# of their biological variance component)
-hvg <- getTopHVGs(dec, n=2e3)
+# 1. fit mean-variance relationship (technical vs. biological variance)
+# 2. select top-2,000 ranked genes (wrt. biological variance component)
+spe <- chooseRnaHvgs.se(spe, top=2e3, more.var.args=list(use.min.width=TRUE))
+sum(rowData(spe)$hvg)
 ```
 
-```{r plt-hvgs, fig.width=5, fig.height=4}
+```{r plt-hvgs, warning=FALSE, fig.width=5, fig.height=4}
 #| code-fold: true
 # visualize mean-variance relationship
-par(mar = c(4, 4, 0, 0))
-fit <- metadata(dec)
-plot(fit$mean, fit$var, cex = 0.5, xlab = "mean expression", ylab = "variance")
-points(dec[hvg, "mean"], dec[hvg, "total"], cex = 0.5, col = "dodgerblue")
-curve(fit$trend(x), add = TRUE, lwd = 2, col = "tomato")
+par(mar=c(4, 4, 0, 0))
+rd <- rowData(spe)
+plot(rd$means, rd$variances, cex=0.5, 
+    col=c("black", "dodgerblue")[rd$hvg+1], 
+    xlab="mean expression", ylab="variance")
+curve(approxfun(rd$means, rd$fitted)(x), col="tomato", lwd=2, add=TRUE)
 ```
 
 ### Differentially expressed genes (DEGs) {#sec-ind-feature-selection-testing-degs}
@@ -87,33 +84,32 @@ For details on identifying DE genes between groups of cells from scRNA-seq data,
 
 Here, we will use pairwise t-tests and specifically test for upregulation (as opposed to downregulation), i.e. expression should be higher in the cluster for which a gene is reported to be a marker; see @sec-ind-clustering for details.
 
-```{r deg, fig.width=10, fig.height=3}
+```{r deg}
 # differential gene expression analysis
-mgs <- findMarkers(spe, groups=spe$BayesSpace, direction="up")
+mgs <- scoreMarkers.se(spe, groups=spe$BayesSpace)
 # select for a few markers per cluster
-deg <- lapply(mgs, \(df) rownames(df)[df$Top <= 3])
+deg <- lapply(mgs, \(df) head(rownames(df), 10))
 length(deg <- unique(unlist(deg)))
 ```
 
 We can visualize selected marker genes as a heatmap where bins represent the average expression (here, log-transformed library size-normalized counts) of a given gene (= columns) in a given cluster (= rows).
 [To visually amplify differences, we use `scale = "column"`. This will, for every gene, subtract the mean and divide by the standard deviation across per-cluster means, bringing genes of potentially very different expression levels to a comparable scale.]{.aside}
 
-```{r plt-deg-hm, fig.width=9, fig.height=3}
+```{r plt-deg-hm, fig.width=10, fig.height=3}
 #| code-fold: true
 # compute cluster-wise averages
-pbs <- aggregateAcrossCells(spe, 
-    ids = spe$BayesSpace, subset.row = deg, 
-    use.assay.type = "logcounts", statistics = "mean")
+pbs <- aggregateAcrossCells.se(spe[deg, ], spe$BayesSpace, assay.type="logcounts")
+mtx <- t(sweep(assay(pbs, "sums"), 2, pbs$counts, `/`))
 # use gene symbols as feature names
-mtx <- t(assay(pbs))
-colnames(mtx) <- rowData(pbs)$gene_name
+rownames(mtx) <- pbs$BayesSpace
+colnames(mtx) <- rowData(spe[deg, ])$gene_name
 # using pheatmap package
-pheatmap(mat = mtx, scale = "column")
+pheatmap(mat=mtx, scale="column")
 ```
 
 In addition, we can plot in x-y space, i.e. coloring spots by their expression of a given marker gene:
 
-```{r plt-deg-xy, fig.width=10, fig.height=8, message=FALSE}
+```{r plt-deg-xy, fig.width=10, fig.height=7, message=FALSE}
 #| code-fold: true
 # select top-3 markers for each cluster & get gene symbols
 gs <- unique(unlist(lapply(mgs, \(df) head(rownames(df), 3))))
@@ -125,10 +121,10 @@ ps <- lapply(gs, \(.) {
         feature_names = "gene_name", 
         assay_name = "logcounts") })
 # figure arrangement
-wrap_plots(ps, nrow = 4) & 
-  theme(legend.key.width = unit(0.4, "lines"), 
-        legend.key.height = unit(0.8, "lines")) & 
-  scale_color_gradientn(colors = rev(hcl.colors(9, "Rocket")))
+wrap_plots(ps, nrow = 4) & theme(
+    legend.key.width = unit(0.4, "lines"), 
+    legend.key.height = unit(0.8, "lines")) & 
+    scale_color_gradientn(colors = rev(hcl.colors(9, "Rocket")))
 ```
 
 ## Spatially-aware
@@ -176,7 +172,7 @@ sub <- filter_genes(sub,     # filter for genes with...
     filter_genes_ncounts=10, # at least 10 counts in
     filter_genes_pcspots=3)  # at least 3% of spots
 # re-normalize counts post-filtering
-sub <- logNormCounts(sub)
+sub <- normalizeRnaCounts.se(sub)
 
 # run nnSVG
 set.seed(123)
@@ -221,7 +217,8 @@ table(res_DESpace$FDR <= 0.05)
 The set of top SVGs may be further investigated, e.g. by plotting the spatial expression of several top genes and via gene pathway analyses (i.e., comparing significant SVGs with known gene sets associated with specific biological functions). 
 
 ```{r top}
-top_HVGs <- getTopHVGs(dec, n=(n <- 6))
+top_HVGs <- chooseHighlyVariableGenes(res, top=6)
+top_HVGs <- rownames(spe)[top_HVGs]
 top_DEGs <- lapply(mgs, \(df) rownames(df)[df$Top == 1])
 top_DEGs <- unique(unlist(top_DEGs))[seq_len(6)]
 top_DESpace <- res_DESpace$gene_id[seq_len(6)]
