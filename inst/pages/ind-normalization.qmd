@@ -89,7 +89,7 @@ We can clearly see that library size factors of tumor cells are systematically h
 
 We can also compare the area-derived scaling factors with the library size factors:
 
-```{r plot-size-factors-scatter, fig.width=6, fig.height=6}
+```{r plot-size-factors-scatter, fig.width=6, fig.height=5}
 #| code-fold: true
 ggplot(df, aes(sf_area, sf_lib)) + 
     geom_point(shape=16, stroke=0, size=0.4) +
