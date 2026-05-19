@@ -90,7 +90,7 @@ table(mt)
 spe <- spe[!mt, ]
 ```
 
-Next, apply methods from `r BiocStyle::Biocpkg("scrapper")`. This stores the selected HVGs in `rowData(spe)$hvg`, which can be used as the input for subsequent steps. The argument `top` defines the number of HVGs to select. Here, we select the top 10% of genes. Alternatively, a fixed number of top HVGs can be selected, say 1000 or 2000.
+Next, apply methods from `r BiocStyle::Biocpkg("scrapper")`. This stores the selected HVGs in `rowData(spe)$hvg`, which can be used as the input for subsequent steps. The argument `top` defines the number of HVGs to select. Here, we select the top 10% of genes. Alternatively, a fixed number of top HVGs may be selected, say 1000 or 2000.
 
 ```{r hvgs, message=FALSE, fig.width=5.5, fig.height=4.5}
 # fit mean-variance relationship and select top HVGs
