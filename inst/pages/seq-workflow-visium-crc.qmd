@@ -11,23 +11,21 @@ In this demo, we will be analyzing Visium data on a human colorectal cancer biop
 ### Dependencies
 
 ```{r load-libs, message=FALSE, warning=FALSE}
-library(osfr)
-library(scran)
-library(scater)
-library(igraph)
 library(AUCell)
-library(scuttle)
-library(spacexr)
-library(msigdbr)
-library(VisiumIO)
-library(jsonlite)
-library(ggspavis)
-library(pheatmap)
-library(patchwork)
-library(OSTA.data)
 library(BiocParallel)
 library(DropletUtils)
+library(ggspavis)
+library(igraph)
+library(jsonlite)
+library(msigdbr)
+library(OSTA.data)
+library(patchwork)
+library(pheatmap)
+library(scater)
+library(scrapper)
+library(spacexr)
 library(SpatialExperiment)
+library(VisiumIO)
 # specify whether/how to 
 # perform parallelization
 bp <- MulticoreParam(th <- 4)
@@ -44,9 +42,7 @@ id <- "Visium_HumanColon_Oliveira"
 pa <- OSTA.data_load(id)
 dir.create(td <- tempfile())
 unzip(pa, exdir=td)
-```
 
-```{r spe}
 # read into 'SpatialExperiment'
 obj <- TENxVisium(
     spacerangerOut=file.path(td, "outs"), 
@@ -71,15 +67,18 @@ plot_layout(nrow=1) & facet_null()
 ```{r add-qc}
 # use gene symbols as feature names
 rownames(spe) <- make.unique(rowData(spe)$Symbol)
-# add per-cell quality control metrics
+# add per-cell quality control metrics & determine 
+# outliers via thresholding on MAD from the median
 sub <- list(mt=grep("^MT-", rownames(spe)))
-spe <- addPerCellQCMetrics(spe, subsets=sub)
+spe <- quickRnaQc.se(spe, subsets=sub)
+spe$discard <- !spe$keep
+spe$log_sum <- log1p(spe$sum)
+spe$mt_prop <- spe$subset.proportion.mt
 ```
 
 ```{r plt-xy-qc, echo=FALSE, message=FALSE, fig.width=6, fig.height=2.5}
-spe$log_sum <- log1p(spe$sum)
 plotCoords(spe, annotate="log_sum") + ggtitle("log-library size") +
-plotCoords(spe, annotate="subsets_mt_percent") + ggtitle("% mitochondrial") +
+plotCoords(spe, annotate="mt_prop") + ggtitle("% mitochondrial") +
 plot_layout(nrow=1) & theme(
     legend.key.width=unit(0.5, "lines"),
     legend.key.height=unit(1, "lines")) &
@@ -87,12 +86,14 @@ plot_layout(nrow=1) & theme(
 ```
 
 ```{r ol}
-# determine outliers via thresholding on MAD from the median
-ol <- perCellQCFilters(spe, sub.fields="subsets_mt_percent")
-# add results as cell metadata
-colData(spe)[names(ol)] <- ol 
-# tabulate # and % of cells that'd 
-# be discarded for different reasons
+# tabulate # and % of cells that'd be 
+# discarded for different reasons
+th <- metadata(spe)$qc$thresholds
+ol <- data.frame(
+    low_sum=spe$sum < th$sum,
+    low_detected=spe$detected < th$detected,
+    high_mt_prop=spe$mt_prop > th$subset.proportion,
+    discard=spe$discard)
 data.frame(
     check.names=FALSE,
     `#`=apply(ol, 2, sum), 
@@ -103,6 +104,7 @@ Let's see which spots would be excluded according to the above criteria:
 
 ```{r plt-ol-xy, fig.width=12, fig.height=3}
 #| code-fold: true
+colData(spe)[names(ol)] <- ol
 lapply(names(ol), \(.) 
     plotCoords(spe, annotate=.) + ggtitle(.)) |>
     wrap_plots(nrow=1, guides="collect") &
@@ -117,12 +119,12 @@ It seems like low-quality spots are highly spatially organized, so that might mi
 
 ```{r pro}
 # log-library size normalization
-spe <- logNormCounts(spe)
+spe <- normalizeRnaCounts.se(spe)
 # highly variable feature selection
-tbl <- modelGeneVar(spe)
-sel <- getTopHVGs(tbl, n=2e3)
+spe <- chooseRnaHvgs.se(spe, top=2e3,
+    more.var.args=list(use.min.width=TRUE))
 # principal component analysis
-spe <- runPCA(spe, subset_row=sel)
+spe <- runPca.se(spe, features=rowData(spe)$hvg)
 ```
 
 ## Clustering
@@ -130,11 +132,13 @@ spe <- runPCA(spe, subset_row=sel)
 As an unsupervised approach, we perform shared nearest-neighbor (SNN) graph-based clustering using the Leiden community detection algorithm.
 
 ```{r clu}
-# build shared nearest-neighbor (SNN) graph
-g <- buildSNNGraph(spe, use.dimred="PCA", type="jaccard")
+# PCA-based shared nearest-neighbor (SNN) graph;
 # cluster via Leiden community detection algorithm
-k <- cluster_leiden(g, objective_function="modularity", resolution=0.5)
-table(spe$Leiden <- factor(k$membership))
+spe <- clusterGraph.se(spe,
+    output.name="Leiden",
+    method="leiden", resolution=0.5,
+    more.build.args=list(weight.scheme="jaccard"))
+table(spe$Leiden)
 ```
 
 ## Deconvolution
@@ -264,9 +268,13 @@ Let's inspect the key drivers of (expression) variability in terms of PCs. Consi
 
 ```{r plt-pcs-xy, message=FALSE, fig.width=9, fig.height=5}
 #| code-fold: true
+# add PCs as cell metadata
 pcs <- reducedDim(spe, "PCA")
+colnames(pcs) <- paste0("PC", seq(ncol(pcs)))
 colData(spe)[colnames(pcs)] <- pcs
-lapply(colnames(pcs)[seq_len(6)], 
+
+# visualize PCs 1-6 spatially
+lapply(head(colnames(pcs), 6), 
     \(.) plotCoords(spe, annotate=.) +
     scale_color_gradientn(., colors=pals::jet())) |>
     wrap_plots(nrow=2) & theme(
@@ -279,7 +287,7 @@ Quality control metrics tend to be low for specific clusters. Their patch-like p
 
 ```{r plt-clu-qc, message=FALSE, fig.width=8, fig.height=2.5}
 #| code-fold: true
-lapply(c("detected", "log_sum", "subsets_mt_percent"), \(.)
+lapply(c("detected", "log_sum", "mt_prop"), \(.)
     plotColData(spe, x=., y="Leiden", color_by="discard", point_size=0.1) +
     scale_x_discrete(limits=names(sort(by(spe[[.]], spe$Leiden, median))))) |>
     wrap_plots(nrow=1, guides="collect") &
@@ -360,11 +368,13 @@ these may stem from an unsupervised or deconvolution-based approach:
 par(mar=c(0,0,0,0))
 for (. in c("Leiden", "RCTD")) {
     # aggregate AUC values by cluster
-    mu <- aggregateAcrossCells(auc[top, ], spe[[.]], 
-        use.assay.type="AUC", statistics="mean")
+    ks <- spe[[.]]
+    pb <- aggregateAcrossCells.se(auc[top, ], ks, assay.type="AUC")
+    mu <- sweep(assay(pb, "sums"), 2, pb$counts, `/`)
+    colnames(mu) <- levels(ks)
     # visualize as (cluster x set) heatmap
     pheatmap(
-        mat=t(assay(mu)), scale="column", col=pals::coolwarm(), main=.,
+        mat=t(mu), scale="column", col=pals::coolwarm(), main=.,
         cellwidth=10, cellheight=10, treeheight_row=5, treeheight_col=5)
 }
 ```
@@ -388,7 +398,6 @@ pheatmap(cm,
     cellwidth=10, cellheight=10, 
     treeheight_row=5, treeheight_col=5)
 ```
-
 
 ## Appendix
 
