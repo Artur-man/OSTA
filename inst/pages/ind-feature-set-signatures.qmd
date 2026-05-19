@@ -29,14 +29,15 @@ investigated in downstream analyses.
 
 ```{r load-libs, message=FALSE, warning=FALSE}
 library(AUCell)
-library(ggplot2)
-library(msigdbr)
-library(scuttle)
-library(ggspavis)
-library(pheatmap)
-library(patchwork)
 library(BiocParallel)
+library(ggplot2)
+library(ggspavis)
+library(msigdbr)
+library(patchwork)
+library(pheatmap)
+library(scrapper)
 library(SpatialExperiment)
+# parallelization setup
 bp <- MulticoreParam(th <- 4)
 ```
 
@@ -142,9 +143,10 @@ approaches or in cases where the cells under study are poorly characterized.
 ```{r plt-hm, fig.width=6, fig.height=5}
 #| code-fold: true
 # aggregate AUC values by cluster
-mu <- aggregateAcrossCells(auc, ids=colLabels(spe), use.assay.type="AUC", statistics="mean")
+pb <- aggregateAcrossCells.se(auc, olLabels(spe), assay.type="AUC")
+mu <- sweep(assay(pb, "sums"), 2, pb$counts, `/`)
 # visualize as (set x cluster) heatmap
-pheatmap(mat=assay(mu), scale="row", col=pals::coolwarm())
+pheatmap(mu, scale="row", col=pals::coolwarm())
 ```
 
 In a multi-sample setting - say, where sections across different stages of
@@ -153,7 +155,6 @@ between experimental conditions. Ideally, this'd be done at the subpopulation
 level, since compositional differences are deemed to drive differences (e.g.,
 sections richer in CD8+ T cells are, by chance, more likely to score higher
 for cytotoxicity than sections where CD8+ T cells are absent, or similar).
-
 
 ## Appendix
 
