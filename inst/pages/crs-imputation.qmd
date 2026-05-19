@@ -20,8 +20,8 @@ library(igraph)
 library(OSTA.data)
 library(patchwork)
 library(RANN)
-library(scran)
 library(scater)
+library(scrapper)
 library(SpatialExperiment)
 library(SpatialExperimentIO)
 bp <- MulticoreParam(th <- 4)
@@ -29,15 +29,21 @@ bp <- MulticoreParam(th <- 4)
 
 ## Data import
 
-The analyses demonstrated here will use 313-plex Xenium data (10x Genomics) of a human breast cancer biopsy section and the Chromium Single Cell Gene Expression Flex applied to FFPE tissues (scFFPE-Seq) assay with around 18,000 features [@Janesick2023-high-res].
+The analyses demonstrated here will use 313-plex Xenium data (10x Genomics) 
+of a human breast cancer biopsy section and the Chromium Single Cell Gene 
+Expression Flex applied to FFPE tissues (scFFPE-Seq) assay with around 
+18,000 features [@Janesick2023-high-res].
 
 ### Xenium
 
 ```{r load-spe, message=FALSE, warning=FALSE}
+# rertrieve spatial data
 id <- "Xenium_HumanBreast1_Janesick"
 pa <- OSTA.data_load(id, mol=FALSE)
 dir.create(td <- tempfile())
 unzip(pa, exdir=td)
+
+# read into & set sample identifier
 spe <- readXeniumSXE(td, addTx=FALSE)
 spe$sample_id <- "Xenium"
 dim(spe)
@@ -48,15 +54,18 @@ dim(spe)
 We now load the single cell FFPE RNA-Seq assay. To streamline the demonstration, we consolidate some of the cell type annotations provided by 10x Genomics (i.e., `Annotation`) into the scRNA-seq assay. The single-cell assay has 18,082 features, some of which are available in the Xenium assay as well.
 
 ```{r load-sce, message=FALSE, warning=FALSE}
+# retrieve single-cell data
 id <- "Chromium_HumanBreast_Janesick"
 pa <- OSTA.data_load(id)
 dir.create(td <- tempfile())
 unzip(pa, exdir=td)
+
+# read into, set gene symbols & sample identifier
 h5 <- file.path(td, "filtered_feature_bc_matrix.h5")
 sce <- read10xCounts(h5, col.names=TRUE)
-sce$sample_id <- "Chromium"
-# set gene symbols as feature names
 rownames(sce) <- make.unique(rowData(sce)$Symbol)
+sce$sample_id <- "Chromium"
+
 # retrieve cell type labels
 fs <- list.files(td, full.names=TRUE)
 csv <- grep("csv$", fs, value=TRUE)
@@ -94,8 +103,9 @@ To this end, we first consolidate the scRNA-seq and Xenium data into one object:
 ```{r obj}
 # normalization
 sfs <- (. <- spe$cell_area)/median(.)
-spe <- logNormCounts(spe, size.factors=sfs)
-sce <- logNormCounts(sce)
+spe <- normalizeRnaCounts.se(spe, size.factors=sfs)
+sce <- normalizeRnaCounts.se(sce)
+
 # concatenate objects
 length(gs <- intersect(rownames(spe), rownames(sce)))
 cd <- intersect(names(colData(spe)), names(colData(sce)))
@@ -106,6 +116,7 @@ obj <- lapply(list(spe, sce), \(x) {
         assays=list(logcounts=y),
         colData=colData(x)[cd])
 }) |> do.call(what=cbind)
+
 # add single-cell annotations
 lab <- match(colnames(obj), colnames(sce))
 obj$Annotation <- sce$Annotation[lab]
@@ -118,22 +129,26 @@ We now filter out cells with too few counts, and then perform PC-based `harmony`
 # least 10% of features detected
 det <- colMeans(logcounts(obj) > 0)
 obj <- obj[, det >= 0.1]
+
 # principal component analysis
 # (w/o additional feature selection)
-obj <- runPCA(obj, name=".PCA")
-# 'harmony' integration
-# (keeping uncorrected PCs)
-# note harmony requires max 2 cores
-ncores <- 2
+obj <- runPca.se(obj, 
+    features=rownames(obj), 
+    output.name=".PCA")
+
+# 'harmony' integration (keeping uncorrected PCs)
 pcs <- RunHarmony(
     reducedDim(obj, ".PCA"),
-    meta_data=obj$sample_id,
-    ncores=ncores, verbose=FALSE)
+    meta_data=obj$sample_id, 
+    ncores=2, verbose=FALSE)
 reducedDim(obj, "PCA") <- pcs
-# dimensionality reduction before/after 
-# integration (for visualization only)
-obj <- runUMAP(obj, dimred=".PCA", name=".UMAP", BPPARAM=bp)
-obj <- runUMAP(obj, dimred="PCA", name="UMAP", BPPARAM=bp)
+
+# dimensionality reduction before/after
+# integration(for visualization only)
+obj <- runUmap.se(obj, num.threads=th,
+    reddim.type=".PCA", output.name=".UMAP") 
+obj <- runUmap.se(obj, num.threads=th,
+    reddim.type="PCA", output.name="UMAP")
 ```
 
 Let us now visualize the embedding of both Xenium and scRNA-seq cells to assess 
@@ -222,15 +237,16 @@ For this purpose, we test for differentially expressed genes (DEGs) between
 cell types (`Annotation` column), and select the top-20 markers for each:
 
 ```{r mgs}
-# normalize
-sce <- logNormCounts(sce)
 # test for differentially expressed genes 
 # (DEGs) to identify subpopulation markers
-colLabels(sce) <- sce$Annotation
-mgs <- findMarkers(sce, test="wilcox", direction="up", BPPARAM=bp)
+idx <- !is.na(sce$Annotation)
+mgs <- scoreMarkers.se(
+    sce[, idx], num.threads=th,
+    groups=sce$Annotation[idx])
+
 # get top markers per cell type
 top <- lapply(names(mgs), \(k) {
-    df <- mgs[[k]][, c("FDR", "summary.AUC")]
+    df <- mgs[[k]][c("mean", "detected", "auc.mean")]
     g <- head(rownames(df), 20)
     data.frame(k, g, df[g, ])
 }) |> do.call(what=rbind)
@@ -250,12 +266,14 @@ pcs <- reducedDim(obj, "PCA")
 ref <- pcs[idx$Chromium, ]
 que <- pcs[idx$Xenium, ]
 knn <- nn2(data=ref, query=que, k=k <- 20)
+
 # create adjacency matrix
 el <- cbind(
     rep(idx$Xenium, each=k), 
     idx$Chromium[c(t(knn$nn.idx))])
 g <- graph_from_edgelist(el, directed=TRUE)
 A <- as_adjacency_matrix(g)
+
 # average Chromium across Xenium neighbors
 gs <- unique(top$g)
 cs <- intersect(rownames(A), idx$Chromium)
@@ -273,7 +291,7 @@ ii) replacing observed by imputed counts in one object:
 
 ```{r new-spe}
 spe <- spe[, idx$Xenium]
-spe <- logNormCounts(spe)
+spe <- normalizeRnaCounts.se(spe)
 sqe <- SpatialExperiment(
     assays=list(logcounts=y), 
     spatialCoords=spatialCoords(spe))
@@ -324,12 +342,13 @@ ggplot(df, aes(g, p, fill=p > 0.5)) + geom_col() +
 ```
 
 We observe the highest correlation between observed and imputed data for 
-KRT7; let's confirm this by visualizing the gene's expression in space:
+`r levels(df$g)[1]`; let's confirm this by visualizing its expression in space:
 
 ```{r plt-xy-two, fig.width=9, fig.height=3, message=FALSE}
 #| code-fold: true
-.p(spe, "KRT7") + pal +
-.p(sqe, "KRT7") + qal +
+top <- levels(df$g)[1]
+.p(spe, top) + pal +
+.p(sqe, top) + qal +
     plot_layout(nrow=1) 
 ```
 
@@ -357,7 +376,6 @@ Alternatively, we can use other R/Python frameworks to integrate imaging-based S
 - **Tangram**: is available as a Python module through [scvi-tools](https://docs.scvi-tools.org/en/latest/user_guide/models/tangram.html) [@Biancalani2021-Tangram]. The tool performs a softmax optimization to generate a probabilistic mapping between cells of scRNA-seq data and voxels (cells or spots) of ST data, which is then used to transfer labels or feature profiles across datasets.
 
 - **LIGER**: is available in R via `r BiocStyle::CRANpkg("rliger")` [@Welch2019-LIGER], and incorporates a similar workflow performed in this chapter using `r BiocStyle::Biocpkg("harmony")`. The only difference between these approaches is how the joint embedding is obtained; here, LIGER uses non-negative matrix factorization (NMF). LIGER has been originally proposed to perform this task for scRNA-seq and scATAC-seq assays.
-
 
 ## Appendix
 
