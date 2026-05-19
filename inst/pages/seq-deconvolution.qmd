@@ -42,8 +42,7 @@ library(ggspavis)
 library(OSTA.data)
 library(patchwork)
 library(pheatmap)
-library(scran)
-library(scater)
+library(scrapper)
 library(spacexr)
 library(SpatialExperiment)
 library(VisiumIO)
@@ -92,8 +91,8 @@ plotVisium(vis, spots=FALSE, point_size=1) + box +
 Deconvolution is performed after quality control, as detailed in @sec-seq-quality-control, and is usually performed on unnormalized and untransformed (i.e. raw) counts. Here, we quickly check some typically spot-level metrics.
 
 ```{r qcvis}
-sub <- list(mt=grep("^MT-", rownames(vis)))
-vis <- addPerCellQCMetrics(vis, subsets=sub)
+sub <- list(mt=grepl("^MT-", rownames(vis)))
+vis <- quickRnaQc.se(vis, subsets=sub)
 ```
 
 ```{r plt-xy-qc, message = FALSE, fig.width = 9, fig.height = 2.5}
@@ -103,11 +102,11 @@ plotCoords(vis,
     annotate="log_sum") + 
     ggtitle("log library size") + 
 plotCoords(vis, 
-    annotate="subsets_mt_percent") + 
-    ggtitle("% mitochondrial") + 
+    annotate="subset.proportion.mt") + 
+    ggtitle("mitochondrial fraction") + 
 ggplot(
     data.frame(colData(vis)), 
-    aes(x=sum, y=subsets_mt_percent)) + 
+    aes(x=sum, y=subset.proportion.mt)) + 
     geom_point() + geom_density_2d() +
     scale_x_log10() + scale_y_sqrt() +
     theme(aspect.ratio=2/3) +
@@ -378,13 +377,18 @@ Next, we prepare the principal components (PCs) needed to perform PC regression:
 
 ```{r pca}
 # log-library size normalization
-vis <- logNormCounts(vis)
+vis <- normalizeRnaCounts.se(vis)
 # feature selection 
-dec <- modelGeneVar(vis)
-hvg <- getTopHVGs(dec, prop=0.1)
+vis <- chooseRnaHvgs.se(
+    vis,
+    top=ceiling(0.1 * nrow(vis)),
+    more.var.args=list(use.min.width=TRUE))
+hvg <- rownames(vis)[rowData(vis)$hvg]
 # dimension reduction 
 set.seed(1234)
-vis <- runPCA(vis, ncomponents=20, subset_row=hvg)
+vis <- runPca.se(vis, features=hvg, number=20)
+colnames(reducedDim(vis, "PCA")) <- paste0(
+    "PC", seq_len(ncol(reducedDim(vis, "PCA"))))
 ```
 
 We fit the deconvolution result of each cell type against the first 10 PCs to obtain 10 regressions.
