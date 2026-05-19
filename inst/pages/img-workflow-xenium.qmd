@@ -6,7 +6,7 @@
 
 ### Introduction
 
-In this demo, we will analyze a 313-plex Xenium dataset on human breast cancer tissue
+In this demo, we will analyze a 313-plex Xenium dataset on human colorectal cancer tissue
 [@Janesick2023-high-res]. Following very basic quality control and preprocessing, we will 
 perform both (non-spatial) unsupervised clustering as well as fully supervised 
 label-transfer based on scRNA-seq reference data, and then compare the obtained 
