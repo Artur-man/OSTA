@@ -15,17 +15,14 @@ cluster assignments to those provided by the authors.
 ### Dependencies {#sec-img-workflow-xenium-load-data}
 
 ```{r load-libs, message=FALSE, warning=FALSE}
-library(dplyr)
-library(tidyr)
+library(BiocParallel)
+library(DropletUtils)
+library(ggplot2)
+library(OSTA.data)
+library(patchwork)
 library(scater)
 library(scrapper)
 library(SingleR)
-library(ggplot2)
-library(patchwork)
-library(OSTA.data)
-library(BayesSpace)
-library(BiocParallel)
-library(DropletUtils)
 library(SpatialExperiment)
 library(SpatialExperimentIO)
 # set parallelization
@@ -170,13 +167,13 @@ wrap_plots(ps, nrow=1) &
 ### Unsupervised
 
 ```{r Leiden}
-# PC-based shared nearest-neighbor (SNN)
-# graph + community detection using Leiden
+# shared nearest-neighbor (SNN) graph based on 
+# cell-to-cell Jaccard similarity in PC space;
+# community detection using Leiden algorithm
 sub <- clusterGraph.se(sub,
-    num.threads=th,
-    resolution=0.7, 
-    method="leiden", 
-    output.name="Leiden")
+    num.threads=th, resolution=0.5, 
+    method="leiden", output.name="Leiden",
+    more.build.args=list(weight.scheme="jaccard"))
 table(sub$Leiden)
 ```
 
