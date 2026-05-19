@@ -75,7 +75,7 @@ The dataset consists of one sample (Visium capture area) from one donor, consist
 
 We calculate the QC metrics described above with a combination of methods from the `r BiocStyle::Biocpkg("scrapper")` package (for metrics that are also used for scRNA-seq data, where we treat spots as equivalent to cells) and our own functions. We can then use these metrics to identify low-quality spots.
 
-The QC metrics from `scrapper` can be calculated and added to the `SpatialExperiment` object's column data using the `quickRnaQc.se` function. The `sum` column contains the total number of unique molecular identifiers (UMIs) for each spot, the `detected` column contains the number of unique genes detected per spot, and `subset.proportion.mito` contains the proportion of transcripts mapping to mitochondrial genes per spot.
+The QC metrics from `scrapper` can be calculated and added to the `SpatialExperiment` object's column data using the `quickRnaQc.se()` function. The `sum` column contains the total number of unique molecular identifiers (UMIs) for each spot, the `detected` column contains the number of unique genes detected per spot, and `subset.proportion.mito` contains the proportion of transcripts mapping to mitochondrial genes per spot.
 
 First, we subset the object to keep only spots covered by the tissue section. The remaining spots are background spots, which we are not interested in as they will contain almost entirely mitochondrial genes and transcripts from cellular debris.
 
