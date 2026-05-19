@@ -116,6 +116,7 @@ hist(spe$sum, xlab="sum", main="UMIs per spot")
 hist(spe$detected, xlab="detected", main="Genes per spot")
 hist(spe$subset.proportion.mito, xlab="proportion mito", main="Proportion mito UMIs")
 hist(spe$cell_count, xlab="no. cells", main="No. cells per spot")
+par(mfrow=c(1, 1))
 ```
 
 The distributions are relatively smooth, and there are no obvious issues such as a spike at very low library sizes.
