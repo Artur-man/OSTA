@@ -51,11 +51,12 @@ In this chapter, we will rely on the following packages:
 ```{r load-libs, message=FALSE, warning=FALSE}
 library(STexampleData)
 library(ggspavis)
+library(ggplot2)
 library(scater)
-library(scuttle)
+library(scrapper)
 library(SpotSweeper)
-library(GenomeInfoDb)
 library(patchwork)
+library(SpatialExperiment)
 ```
 
 
@@ -72,9 +73,9 @@ The dataset consists of one sample (Visium capture area) from one donor, consist
 
 ## Calculate QC metrics
 
-We calculate the QC metrics described above with a combination of methods from the `scater` [@McCarthy2017-scater] package (for metrics that are also used for scRNA-seq data, where we treat spots as equivalent to cells) and our own functions. We can then use these metrics to identify low-quality spots.
+We calculate the QC metrics described above with a combination of methods from the `r BiocStyle::Biocpkg("scrapper")` package (for metrics that are also used for scRNA-seq data, where we treat spots as equivalent to cells) and our own functions. We can then use these metrics to identify low-quality spots.
 
-The QC metrics from `scater` can be calculated and added to the `SpatialExperiment` object's column data using the `addPerCellQC` function. The `sum` column contains the total number of unique molecular identifiers (UMIs) for each spot, the `detected` column contains the number of unique genes detected per spot, and `subsets_mito_percent` contains the percentage (or proportion) of transcripts mapping to mitochondrial genes per spot.
+The QC metrics from `scrapper` can be calculated and added to the `SpatialExperiment` object's column data using the `quickRnaQc.se` function. The `sum` column contains the total number of unique molecular identifiers (UMIs) for each spot, the `detected` column contains the number of unique genes detected per spot, and `subset.proportion.mito` contains the proportion of transcripts mapping to mitochondrial genes per spot.
 
 First, we subset the object to keep only spots covered by the tissue section. The remaining spots are background spots, which we are not interested in as they will contain almost entirely mitochondrial genes and transcripts from cellular debris.
 
@@ -91,7 +92,7 @@ table(is_mito)
 rowData(spe)$gene_name[is_mito]
 
 # calculate per-spot QC metrics and store in colData
-spe <- addPerCellQC(spe, subsets=list(mito=is_mito))
+spe <- quickRnaQc.se(spe, subsets=list(mito=is_mito))
 head(colData(spe))
 ```
 
@@ -105,7 +106,7 @@ spe_save <- spe
 
 Many commonly used QC methods currently applied to ST were adapted from snRNA-seq workflows, such as **global outlier detection**. The simplest option for identifying potential low-quality spots is to apply fixed thresholds to each QC metric across the entire sample, and remove any spots that do not meet the thresholds for one or more metrics.
 
-For example, we might consider spots to be of low-qualty if they have library sizes below 600 UMI or mitochondrial propotion above 30%. These cutoffs are somewhat arbitrary and often require knowledge of the tissue type and dataset at hand. In particular, exploratory visualizations can be used to help select appropriate thresholds, which may differ depending on the dataset.
+For example, we might consider spots to be of low-quality if they have library sizes below 600 UMI or mitochondrial proportion above 0.30 (30%). These cutoffs are somewhat arbitrary and often require knowledge of the tissue type and dataset at hand. In particular, exploratory visualizations can be used to help select appropriate thresholds, which may differ depending on the dataset.
 
 Here, we use visualizations to select thresholds for several QC metrics in our human DLPFC dataset: (i) library size, (ii) number of expressed genes, (iii) proportion of mitochondrial reads, and (iv) number of cells per spot.
 
@@ -113,7 +114,7 @@ Here, we use visualizations to select thresholds for several QC metrics in our h
 par(mfrow=c(1, 4))
 hist(spe$sum, xlab="sum", main="UMIs per spot")
 hist(spe$detected, xlab="detected", main="Genes per spot")
-hist(spe$subsets_mito_percent, xlab="pct mito", main="Percent mito UMIs")
+hist(spe$subset.proportion.mito, xlab="proportion mito", main="Proportion mito UMIs")
 hist(spe$cell_count, xlab="no. cells", main="No. cells per spot")
 ```
 
@@ -134,8 +135,8 @@ p1 <- plotObsQC(spe,
 p2 <- plotObsQC(spe, 
     plot_type="scatter", 
     x_metric="cell_count", 
-    y_metric="subsets_mito_percent", 
-    y_threshold=30) + 
+    y_metric="subset.proportion.mito",
+    y_threshold=0.30) +
     ggtitle("Mito proportion vs. cells per spot")
 
 p1 | p2
@@ -148,7 +149,7 @@ The plot shows that these filtering thresholds do not appear to select for any o
 # detected features & mito. proportion
 spe$qc_lib_size <- spe$sum < 600
 spe$qc_detected <- spe$detected < 400
-spe$qc_mito_prop <- spe$subsets_mito_percent > 30
+spe$qc_mito_prop <- spe$subset.proportion.mito > 0.30
 
 # tabulate number of cells kept/flagged by each
 qc <- grep("^qc", names(colData(spe)))
@@ -169,7 +170,7 @@ p2 <- plotObsQC(spe,
 
 p3 <- plotObsQC(spe, 
     plot_type="spot", annotate="qc_mito_prop") + 
-    ggtitle("Mito proportion (> 30%)")
+    ggtitle("Mito proportion (> 0.30)")
 
 p1 | p2 | p3
 ```
@@ -220,8 +221,8 @@ p2 <- plotObsQC(spe,
 
 # mito proportion and outliers
 p3 <- plotObsQC(spe, 
-    plot_type="violin", x_metric="subsets_mito_percent", 
-    annotate="qc_mito_prop", point_size=0.5) + 
+    plot_type="violin", x_metric="subset.proportion.mito",
+    annotate="qc_mito_prop", point_size=0.5) +
     xlab("Mito proportion")
 
 p1 | p2 | p3
@@ -232,18 +233,18 @@ p1 | p2 | p3
 
 One of the key assumptions of global outlier detection in single cell and spatial transcriptomics is that the QC metrics are independent of natural biology. Otherwise, cell or spots with naturally low library size or higher mitochondrial ratio will be more likely to be removed as outliers. For snRNA-seq, this assumption is rarely or only mildly violated, resulting in negligible impacts on downstream analyses. However, as demonstrated above, this assumption is more commonly violated in sequencing-based ST due to the biological heterogeneity in the tissue being sampled for each spot.
 
-One strategy to address this issue is to look for outliers within their local biological neighborhood. Here, we will implement **local outlier detection** using the `localOutliers()` function from the `r BiocStyle::Biocpkg("SpotSweeper")` Bioconductor package [@Totty2025-SpotSweeper]. This function detects local outliers by comparing the number of unique detected genes, total library size, and mitochondrial percentage of each spot to that of its nearest neighbors. By default, `localOutliers()` uses `k = 36` nearest neighbors, which equates to third-order neighbors (i.e. three concentric rings of neighbors around each spot) in Visium's hexagonal spot arrangement. However, for sequencing-based methods that uses square grid arrangements (e.g. STOmics), third-order neighbors would be `k = 48`.
+One strategy to address this issue is to look for outliers within their local biological neighborhood. Here, we will implement **local outlier detection** using the `localOutliers()` function from the `r BiocStyle::Biocpkg("SpotSweeper")` Bioconductor package [@Totty2025-SpotSweeper]. This function detects local outliers by comparing the number of unique detected genes, total library size, and mitochondrial proportion of each spot to that of its nearest neighbors. By default, `localOutliers()` uses `k = 36` nearest neighbors, which equates to third-order neighbors (i.e. three concentric rings of neighbors around each spot) in Visium's hexagonal spot arrangement. However, for sequencing-based methods that uses square grid arrangements (e.g. STOmics), third-order neighbors would be `k = 48`.
 
-Similar to the adaptive thresholds used above, these methods assume a normal distribution, so we will use the log-transformed `sum` of the total counts and the log-transformed number of `detected` genes. We will not log-transform the mitochondrial percentage as it tends to follow a normal distribution.
+Similar to the adaptive thresholds used above, these methods assume a normal distribution, so we will use the log-transformed `sum` of the total counts and the log-transformed number of `detected` genes. We will not log-transform the mitochondrial proportion as it tends to follow a normal distribution.
 
 ```{r, message=FALSE}
-# detect local outliers based on library size, unique genes, mito. percentage
+# detect local outliers based on library size, unique genes, mito. proportion
 spe <- localOutliers(spe, metric="sum", direction="lower", log=TRUE)
 spe <- localOutliers(spe, metric="detected", direction="lower", log=TRUE)
-spe <- localOutliers(spe, metric="subsets_mito_percent", direction="higher", log=FALSE)
+spe <- localOutliers(spe, metric="subset.proportion.mito", direction="higher", log=FALSE)
 ```
 
-Similar to `scater`'s `addPerCellQC()` function, the `localOutliers()` function adds several columns to the `colData` slot of the `SpatialExperiment` object. The `X_outlier` column contains a logical vector indicating whether the spot is an outlier for the respective metric and the `X_z` column returns the local z-transformed QC metric. If `log = TRUE`, an additional `X_log` column will return the log-transformed metric.
+Similar to `scrapper`'s `quickRnaQc.se()` function, the `localOutliers()` function adds several columns to the `colData` slot of the `SpatialExperiment` object. The `X_outliers` column contains a logical vector indicating whether the spot is an outlier for the respective metric and the `X_z` column returns the local z-transformed QC metric. If `log = TRUE`, an additional `X_log` column will return the log-transformed metric.
 
 We can then visually confirm that the local outliers detected indeed appear to be outliers by using spot plots of the QC metrics. To do this, we will visualize the output log2-transformed data (or un-transformed mitochondrial proportion) next to the detected local outliers.
 
@@ -271,12 +272,12 @@ p4 <- plotObsQC(spe,
 
 # spot plot of mitochondrial proportion
 p5 <- plotCoords(spe, 
-    annotate="subsets_mito_percent") + 
+    annotate="subset.proportion.mito") +
     ggtitle("Mito Proportion")
 
 p6 <- plotObsQC(spe, 
     plot_type="spot", in_tissue="in_tissue", 
-    annotate="subsets_mito_percent_outliers", point_size=0.2) + 
+    annotate="subset.proportion.mito_outliers", point_size=0.2) +
     ggtitle("Local Outliers (Mito Prop)")
 
 # plot using patchwork
@@ -299,10 +300,10 @@ p2 <- plotObsQC(spe,
     annotate="detected_outliers", point_size=0.5) + 
     xlab("detected_outliers")
 
-# z-transformed mito percent and outliers
+# z-transformed mito proportion and outliers
 p3 <- plotObsQC(spe, 
-    plot_type="violin", x_metric="subsets_mito_percent_z", 
-    annotate="subsets_mito_percent_outliers", point_size=0.5) + 
+    plot_type="violin", x_metric="subset.proportion.mito_z",
+    annotate="subset.proportion.mito_outliers", point_size=0.5) +
     xlab("mito_outliers")
 
 p1 | p2 | p3
@@ -315,11 +316,11 @@ Now that we have calculated several QC metrics and selected thresholds for each 
 
 We also check again that the combined set of discarded spots does not correspond to any obvious biologically relevant group of spots.
 
-We also select a slightly updated global threshold for the mitochondrial percentage.
+We also select a slightly updated global threshold for the mitochondrial proportion.
 
 ```{r}
-# select updated threshold for mito percent
-spe$qc_mito <- spe$subsets_mito_percent > 28
+# select updated threshold for mito proportion
+spe$qc_mito <- spe$subset.proportion.mito > 0.28
 table(spe$qc_mito)
 ```
 
@@ -332,7 +333,7 @@ spe$global_outliers <-
 spe$local_outliers <- 
     spe$sum_outliers | 
     spe$detected_outliers | 
-    spe$subsets_mito_percent_outliers
+    spe$subset.proportion.mito_outliers
 
 rbind( # tabulate kept/flagged cells
     global=table(spe$global_outliers),
@@ -367,12 +368,12 @@ dim(spe)
 
 When working with ST datasets, ensuring high-quality data is essential for accurate downstream analyses. One common issue researchers face is the presence of technical artifacts. Here, we will demonstrate how to detect and remove "hangnail" artifacts from Visium datasets.
 
-Hangnails artifacts arise during tissue preparation, and most commonly occur when smaller areas, such as distinct brain regions, are dissected from larger structures like whole human brain sections @Totty2025-SpotSweeper. Tissue dissection can cause mechanical damage, leading to areas with artificially low biological heterogeneity. This manifests as regions with **low variance in QC metrics** such as mitochondrial percentage. Such artifacts can significantly impact downstream analyses, such as spatial domain detection, if not properly identified and addressed @Totty2025-SpotSweeper.
+Hangnails artifacts arise during tissue preparation, and most commonly occur when smaller areas, such as distinct brain regions, are dissected from larger structures like whole human brain sections @Totty2025-SpotSweeper. Tissue dissection can cause mechanical damage, leading to areas with artificially low biological heterogeneity. This manifests as regions with **low variance in QC metrics** such as mitochondrial proportion. Such artifacts can significantly impact downstream analyses, such as spatial domain detection, if not properly identified and addressed @Totty2025-SpotSweeper.
 
 
 #### Loading data and adding QC metrics
 
-We start by loading an example Visium dataset from the SpotSweeper package containing a known hangnail artifact, and then calculate per-spot QC metrics, such as mitochondrial percentage, as shown above.
+We start by loading an example Visium dataset from the SpotSweeper package containing a known hangnail artifact, and then calculate per-spot QC metrics, such as mitochondrial proportion, as shown above.
 
 ```{r, message=FALSE, results='hide'}
 # load DLPFC artifact samples from SpotSweeper package
@@ -385,7 +386,7 @@ table(is_mito)
 rowData(spe.hangnail)$gene_name[is_mito]
 
 # calculate per-spot QC metrics and store in colData
-spe.hangnail <- addPerCellQC(spe.hangnail, subsets=list(mito = is_mito))
+spe.hangnail <- quickRnaQc.se(spe.hangnail, subsets=list(mito=is_mito))
 head(colData(spe.hangnail))
 ```
 
@@ -394,34 +395,34 @@ head(colData(spe.hangnail))
 
 As a note, SpotSweeper's `findArtifacts()` function assumes that an artifact is present in the sample being analyzed. **This means that if no artifact is present, the function will arbitrarily label half of the sample as an "artifact".** Therefore, confirming the presence of a hangnail artifact prior to artifact detection is essential.
 
-Hangnail artifacts are best identified by plotting QC metrics for all samples, as they appear as regions with unusually smooth or low variance in mitochondrial percentage. We can observe this in the example below, as the oblong piece of tissue on the right side has an usually smooth or "smudged" appearance in the mitochondrial percentage (`subsets_mito_percent`) on the right, but not in the library size (`sum`) on the left.
+Hangnail artifacts are best identified by plotting QC metrics for all samples, as they appear as regions with unusually smooth or low variance in mitochondrial proportion. We can observe this in the example below, as the oblong piece of tissue on the right side has an usually smooth or "smudged" appearance in the mitochondrial proportion (`subset.proportion.mito`) on the right, but not in the library size (`sum`) on the left.
 
 ```{r, fig.height=3.75}
 plotCoords(spe.hangnail, annotate="sum") |
-plotCoords(spe.hangnail, annotate="subsets_mito_percent")
+plotCoords(spe.hangnail, annotate="subset.proportion.mito")
 ```
 
-A complementary strategy to confirm that existence of an artifact prior to removal is to quantify the local variance in mitochondrial percentage. Here, we will do this using the `localVariance()` function in `SpotSweeper`, specifying the QC metric (`subsets_mito_percent`) and the number of neighbors to consider. The default neighbor size of `n_neighbors = 36` works well in our experience.
+A complementary strategy to confirm that existence of an artifact prior to removal is to quantify the local variance in mitochondrial proportion. Here, we will do this using the `localVariance()` function in `SpotSweeper`, specifying the QC metric (`subset.proportion.mito`) and the number of neighbors to consider. The default neighbor size of `n_neighbors = 36` works well in our experience.
 
 ```{r, fig.height=3.75}
 spe.hangnail <- localVariance(spe.hangnail, 
     n_neighbors=36, 
-    metric="subsets_mito_percent", 
+    metric="subset.proportion.mito",
     name="local_mito_variance_k36")
 
 plotCoords(spe.hangnail, annotate="local_mito_variance_k36", point_size=1)
 ```
 
-Another way to confirm the presence of a hangnail artifact is via the distribution of the local variance in mitochondrial percentage. Samples affected by hangnails often exhibit a long-tailed or bimodal distribution towards lower variance, reflecting regions with abnormal mitochondrial signal variation. We will demonstrate this here by comparing the distribution of local mitochondrial variance in ths hangnail sample to the distribution in a normal sample.
+Another way to confirm the presence of a hangnail artifact is via the distribution of the local variance in mitochondrial proportion. Samples affected by hangnails often exhibit a long-tailed or bimodal distribution towards lower variance, reflecting regions with abnormal mitochondrial signal variation. We will demonstrate this here by comparing the distribution of local mitochondrial variance in ths hangnail sample to the distribution in a normal sample.
 
 ```{r, fig.height=3.75, message=FALSE}
 # get local mito ratio variance of a normal sample
 spe <- localVariance(spe, 
     n_neighbors=36, 
-    metric="subsets_mito_percent", 
+    metric="subset.proportion.mito",
     name="local_mito_variance_k36")
 
-# plot distribution of local variance in mitochondrial percentage
+# plot distribution of local variance in mitochondrial proportion
 hangnail_sample <- data.frame(x=spe.hangnail$local_mito_variance_k36)
 normal_sample <- data.frame(x=spe$local_mito_variance_k36)
 
