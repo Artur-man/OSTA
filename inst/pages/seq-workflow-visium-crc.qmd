@@ -86,26 +86,26 @@ plot_layout(nrow=1) & theme(
 ```
 
 ```{r ol}
-# tabulate # and % of cells that'd be 
+# tabulate # & % of cells that'd be 
 # discarded for different reasons
-th <- metadata(spe)$qc$thresholds
-ol <- data.frame(
-    low_sum=spe$sum < th$sum,
-    low_detected=spe$detected < th$detected,
-    high_mt_prop=spe$mt_prop > th$subset.proportion,
+ths <- metadata(spe)$qc$thresholds
+ols <- data.frame(
+    low_sum=spe$sum < ths$sum,
+    low_detected=spe$detected < ths$detected,
+    high_mt_prop=spe$mt_prop > ths$subset.proportion,
     discard=spe$discard)
 data.frame(
     check.names=FALSE,
-    `#`=apply(ol, 2, sum), 
-    `%`=round(100*apply(ol, 2, mean), 2))
+    `#`=apply(ols, 2, sum), 
+    `%`=round(100*apply(ols, 2, mean), 2))
 ```
 
 Let's see which spots would be excluded according to the above criteria:
 
 ```{r plt-ol-xy, fig.width=12, fig.height=3}
 #| code-fold: true
-colData(spe)[names(ol)] <- ol
-lapply(names(ol), \(.) 
+colData(spe)[names(ols)] <- ols
+lapply(names(ols), \(.) 
     plotCoords(spe, annotate=.) + ggtitle(.)) |>
     wrap_plots(nrow=1, guides="collect") &
     guides(col=guide_legend(override.aes=list(size=3))) &
