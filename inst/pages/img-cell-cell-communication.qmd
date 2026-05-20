@@ -158,6 +158,9 @@ this can be parallelized, e.g., across fields of view (FOVs) or tissue sections.
 visium-mouse_brain.html#Spatial-communication-inference).]{.aside}
 
 ```{r ccc, message=FALSE}
+# realize expression matrix
+logcounts(sub) <- as(logcounts(sub), "dgCMatrix")
+
 # convert 'SpatialExperiment' (R) to 
 # 'AnnData' (Python) using 'anndataR'
 ad <- as_AnnData(sub, 
