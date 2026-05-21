@@ -258,34 +258,35 @@ wrap_plots(ps, nrow=3) & theme(
 
 ### Comparison
 
-We can compare the ranks of the genes detected by each method and compute pairwise correlations, highlighting two known cortical layer-associated SVGs: *MOBP* and *SNAP25*.
-While all four methods - HVGs, DEGs, SVGs identified through `nnSVG` and `DESpace` - yield similar gene ranks, each method captures distinct aspects of gene expression, with varying pairwise correlations between them.
+We can compare the ranks of genes detected by each method and compute pairwise 
+correlations, highlighting two known cortical layer-associated SVGs: *MOBP* and 
+*SNAP25*. While all four methods -- HVGs, DEGs, SVGs identified through `nnSVG` 
+and `DESpace` -- yield similar gene ranking, each method captures distinct 
+aspects of gene expression, with varying pairwise correlations between them.
 
 ```{r plt-data, message=FALSE, warning=FALSE}
 #| code-fold: true
 # subset data for the 113 genes nnSVG is based on
-sub_gene <- rowData(sub)$gene_id
-sub_DESpace <- res_DESpace[sub_gene, ] 
-sub_HVG <- as.data.frame(dec[sub_gene, ])
+sub_gs <- rowData(sub)$gene_id
+sub_HVG <- as.data.frame(rowData(sub))
+sub_DESpace <- res_DESpace[sub_gs, ] 
 
 # aggregate DEGs for each spatial domain
-subset_mgs <- lapply(mgs, \(x) x[sub_gene, 1:3] |> as.data.frame())
-sub_DEG <- do.call(cbind, subset_mgs) 
-top_cols <- sub_DEG |> select(ends_with(".Top"))
-sub_DEG$Top <- do.call(pmin, c(top_cols, na.rm = TRUE))
+sub_DEG <- do.call(cbind, lapply(mgs, \(df) data.frame(df[sub_gs, ]))) 
+top_cols <- select(sub_DEG, ends_with(".cohens.d.min.rank"))
+sub_DEG$Top <- do.call(pmin, c(top_cols, na.rm=TRUE))
 
 # compute ranks 
-sub_DESpace$rank <- rank(sub_DESpace$FDR, ties.method = "first")
-sub_HVG$rank <- rank(-1 * sub_HVG$bio, ties.method = "first")
-sub_DEG$rank <- rank(sub_DEG$Top, ties.method = "first")
+sub_DEG$rank <- rank(sub_DEG$Top, ties.method="first")
+sub_HVG$rank <- rank(-sub_HVG$residuals, ties.method="first")
+sub_DESpace$rank <- rank(sub_DESpace$FDR, ties.method="first")
 
 # combine 'rank' column for each method
 res_all <- list(
-    nnSVG = as.data.frame(res_nnSVG),
-    DESpace = sub_DESpace, HVGs = sub_HVG, DEGs = sub_DEG
-)
+    nnSVG=as.data.frame(res_nnSVG),
+    DESpace=sub_DESpace, HVGs=sub_HVG, DEGs=sub_DEG)
 rank_all <- do.call(cbind, lapply(res_all, `[[`, "rank"))
-rank_all <- data.frame(gene_id = sub_gene, rank_all)
+rank_all <- data.frame(gene_id=sub_gs, rank_all)
 ```
 
 ```{r plt-scatter-nnsvg, message=FALSE, warning=FALSE, fig.width=10, fig.height=7}
@@ -296,11 +297,11 @@ known_genes <- c("MOBP", "SNAP25")
 method_names <- c("nnSVG", "DESpace", "HVGs", "DEGs")
 # convert data structure
 rank_long <- rank_all |>
-    left_join(data.frame(rowData(sub)[, c("gene_id", "gene_name")]), by = "gene_id") |>
+    left_join(data.frame(rowData(sub)[, c("gene_id", "gene_name")]), by="gene_id") |>
     select(all_of(c("gene_name", method_names))) |>
-    pivot_longer(cols = c(nnSVG, DESpace, HVGs, DEGs), 
-                 names_to = "method", 
-                 values_to = "rank")
+    pivot_longer(cols=c(nnSVG, DESpace, HVGs, DEGs), 
+                 names_to="method", 
+                 values_to="rank")
 # all pairwise comparisons
 df_pairs <- t(combn(method_names, 2)) |> as.data.frame()
 # function to plot each pairwise comparison
@@ -308,18 +309,18 @@ plot_pairwise_comparison <- function(m1, m2, df) {
   # filter the data for the two methods being compared
   df <- df |>
       filter(method %in% c(m1, m2)) |>
-      pivot_wider(names_from = method, values_from = rank)
+      pivot_wider(names_from=method, values_from=rank)
   # compute pearson correlation between methods
-  cor_val <- cor(df[[m1]], df[[m2]], method = "spearman")
+  cor_val <- cor(df[[m1]], df[[m2]], method="spearman")
   # plot
-  ggplot(df, aes(x = .data[[m1]], y = .data[[m2]])) +
+  ggplot(df, aes(x=.data[[m1]], y=.data[[m2]])) +
       geom_point() + 
-      geom_text_repel(data = df %>% filter(gene_name %in% known_genes), 
-                      aes(label = gene_name), color = "red", size = 3.25, 
-                      nudge_x = 50, nudge_y = 10, box.padding = 0.5) +
-      labs(x = paste(m1, "rank"), y = paste(m2, "rank"),
-           title = paste(m2, "vs.", m1, ": Cor = ", round(cor_val, 2))) +
-      #scale_color_manual(values = c("darkorange", "firebrick3", "deepskyblue2")) +
+      geom_text_repel(data=df %>% filter(gene_name %in% known_genes), 
+                      aes(label=gene_name), color="red", size=3.25, 
+                      nudge_x=50, nudge_y=10, box.padding=0.5) +
+      labs(x=paste(m1, "rank"), y=paste(m2, "rank"),
+           title=paste(m2, "vs.", m1, ": Cor=", round(cor_val, 2))) +
+      #scale_color_manual(values=c("darkorange", "firebrick3", "deepskyblue2")) +
       theme_bw() + coord_fixed() + 
       xlim(c(0, 120)) + ylim(c(0, 120))
 }
@@ -329,7 +330,7 @@ plots <- lapply(seq_len(nrow(df_pairs)), \(i) {
     plot_pairwise_comparison(df_pairs[i, 2], df_pairs[i, 1],rank_long)
 })
 
-wrap_plots(plots, ncol = 3)
+wrap_plots(plots, ncol=3)
 ```
 
 :::
