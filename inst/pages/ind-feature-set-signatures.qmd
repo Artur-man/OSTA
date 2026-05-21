@@ -143,7 +143,7 @@ approaches or in cases where the cells under study are poorly characterized.
 ```{r plt-hm, fig.width=6, fig.height=5}
 #| code-fold: true
 # aggregate AUC values by cluster
-pb <- aggregateAcrossCells.se(auc, olLabels(spe), assay.type="AUC")
+pb <- aggregateAcrossCells.se(auc, colLabels(spe), assay.type="AUC")
 mu <- sweep(assay(pb, "sums"), 2, pb$counts, `/`)
 # visualize as (set x cluster) heatmap
 pheatmap(mu, scale="row", col=pals::coolwarm())
