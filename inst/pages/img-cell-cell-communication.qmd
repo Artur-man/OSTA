@@ -312,15 +312,25 @@ and receiver estimates) and visualize subpopulation-level results in a heatmap,
 using SCE-friendly functions for aggregation and visualization available through
 packages like `r BiocStyle::Biocpkg("scuttle")` and `r BiocStyle::Biocpkg("scater")`.
 
+```{r mu-sr}
+# aggregate estimates by cluster (separately for sender/receiver)
+names(as) <- as <- assayNames(sce)
+mu <- lapply(as, \(a) {
+    pb <- aggregateAcrossCells.se(sce, factors=sce$Leiden, assay.type=a)
+    mx <- sweep(assay(pb, "sums"), 2, pb$counts, `/`)
+    assays(pb) <- `names<-`(list(mx), a)
+    colnames(pb) <- pb[[1]]
+    return(pb)
+})
+assay(mu$r, "s") <- assay(mu$s)
+(mu <- mu$r)
+```
+
 ```{r viz-hm, fig.width=5, fig.height=4}
 #| layout-ncol: 2
-for (sr in assayNames(sce)) {
-    # aggregate estimates by cluster (separately for sender/receiver)
-    mu <- aggregateAcrossCells.se(sce, factors=sce$Leiden, assay.type=sr)
-    assay(mu, "means") <- sweep(assay(mu, "sums"), 2, mu$counts, `/`)
-    
-    # visualize scales values across clusters
-    plotHeatmap(mu, exprs_values="means",
+# visualize scales values across clusters
+for (sr in assayNames(mu)) {
+    plotHeatmap(mu, exprs_values=sr,
         features=grep("-", rownames(sce)),
         main=switch(sr, s="sender", r="receiver"),
         show_colnames=TRUE, center=TRUE, scale=TRUE)
