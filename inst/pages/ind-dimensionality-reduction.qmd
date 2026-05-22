@@ -16,12 +16,13 @@ We will try and demonstrate as much here.
 ### Dependencies
 
 ```{r load-libs, message=FALSE, warning=FALSE}
-library(dplyr)
 library(Banksy)
-library(scater)
+library(dplyr)
 library(ggplot2)
 library(OSTA.data)
 library(patchwork)
+library(scater)
+library(scrapper)
 library(SpatialExperiment)
 # set seed for random number generation
 # in order to make results reproducible
@@ -53,12 +54,12 @@ A standard approach is to apply PCA to the set of top HVGs, and retain a subset 
 This is done for two main reasons: (i) to reduce noise due to random variation in expression of biologically uninformative genes, which are assumed to have expression patterns independent of each other, and (ii) to improve computational efficiency.
 Because our data are relatively low-plex in this example, we use all features instead.
 
-Here, we use the implementation of PCA provided in the `r BiocStyle::Biocpkg("scater")` package [@McCarthy2017-scater]:
-[For large-scale datasets (100,000s of cells), argument `BSPARAM=RandomParam()` can be used to decrease runtime by approximating the singular value decomposition (SVD). Because this implementation uses randomization, and seed for random number generation should be set in order to make results reproducible.]{.aside}
+Here, we use the implementation of PCA provided in `r BiocStyle::Biocpkg("scrapper")`:
+<!--[For large-scale datasets (100,000s of cells), argument `BSPARAM=RandomParam()` can be used to decrease runtime by approximating the singular value decomposition (SVD). Because this implementation uses randomization, and seed for random number generation should be set in order to make results reproducible.]{.aside}-->
 
 ```{r dr-tx}
-spe <- logNormCounts(spe)
-spe <- runPCA(spe, ncomponents=20)
+spe <- normalizeRnaCounts.se(spe)
+spe <- runPca.se(spe, features=rownames(spe), number=20)
 ```
 
 ### Spatially aware
@@ -73,7 +74,8 @@ spe <- computeBanksy(spe, assay_name="logcounts", k_geom=20)
 spe <- runBanksyPCA(spe, npcs=20, lambda=0.4)
 ```
 
-To not confuse different types of PCs, we rename the corresponding `reducedDims` to end in `_sp` and `_tx` for spatially aware and unaware results, respectively.
+To not confuse different types of PCs, we rename the corresponding `reducedDims` 
+to end in `_sp` and `_tx` for spatially aware and unaware results, respectively.
 
 ```{r prep-data}
 reducedDimNames(spe) <- c("PCA_tx", "PCA_sp")
@@ -85,24 +87,27 @@ We can also perform non-linear dimensionality reduction using the UMAP algorithm
 
 Note that UMAP plots should be interpreted with caution [@Chari2023-specious]. Specifically, the UMAP algorithm can introduce misleading structure in a 2D plot, and the relative distances between points in the 2D plot are not meaningful. For this reason, we recommend using UMAP only for generating visualizations, not clustering -- any cluster labels shown on a UMAP plot should be generated using a separate clustering algorithm. Similar arguments also apply to the t-SNE algorithm, which may be used as an alternative to UMAP.
 
-Here, we run UMAP on both non-spatial and spatially aware PCs, retaining the first two UMAP components to be used for visualization:
+Here, we run UMAP on both non-spatial and spatially aware PCs, 
+retaining the first two UMAP components to be used for visualization:
 
 ```{r umap}
-spe <- runUMAP(spe, dimred="PCA_tx", name="UMAP_tx")
-spe <- runUMAP(spe, dimred="PCA_sp", name="UMAP_sp")
+spe <- runUmap.se(spe, reddim.type="PCA_tx", output.name="UMAP_tx")
+spe <- runUmap.se(spe, reddim.type="PCA_sp", output.name="UMAP_sp")
 ```
 
 ## Exploratory
 
 A useful visualization is to color cells by their PCs in physical space. 
-This will help highlight key drivers of transcriptional variability, e.g., between major biological compartments such as epithelia, immune and stromal cells.
+This will help highlight key drivers of transcriptional variability, e.g., 
+between major biological compartments (epithelia, immune and stromal cells).
 Exemplary plots of PCs 1-3 are rendered below:
 
 ```{r plot-xy-pcs, collapse=TRUE, fig.width=11, fig.height=3}
 #| code-fold: true
-df <- data.frame(colData(spe), spatialCoords(spe), 
-                 reducedDim(spe, "PCA_tx"))
-lapply(paste0("PC", seq(3)), \(.) {
+pc <- reducedDim(spe, "PCA_tx")
+colnames(pc) <- paste0("PC", seq(ncol(pc)))
+df <- data.frame(colData(spe), spatialCoords(spe), pc)
+lapply(head(colnames(pc), 3), \(.) {
     fd <- df[order(abs(df[[.]])), ]
     ggplot(fd, aes(x_centroid, y_centroid, col=.data[[.]]))
 }) |>
@@ -117,7 +122,8 @@ lapply(paste0("PC", seq(3)), \(.) {
 
 ::: {.callout-note title="PCs as RGB" collapse="true"}
 
-A neat trick in this context is to rescale PC 1-3 values between 0 and 1, and interpret them as RGB values for visualization:
+A neat trick in this context is to rescale PC 1-3 values between 0 and 1, 
+and interpret them as RGB values for visualization:
 
 ```{r pcs-to-rgb}
 pcs <- reducedDim(spe, "PCA_tx")[, seq(3)]
@@ -151,7 +157,6 @@ ggplot(df, aes(x_centroid, y_centroid, col=rgb)) +
         legend.key.size=unit(0, "lines"),
         plot.title=element_text(hjust=0.5))
 ```
-
 
 ## Appendix
 

@@ -38,17 +38,17 @@ Several methods have been developed for these types of analyses. In general, the
 ### Dependencies
 
 ```{r deps, message=FALSE, warning=FALSE}
+library(anndataR)
+library(BiocParallel)
 library(dplyr)
-library(tidyr)
-library(scater)
-library(scuttle)
 library(ggplot2)
 library(ggspavis)
-library(anndataR)
 library(patchwork)
 library(reticulate)
-library(BiocParallel)
+library(scater)
+library(scrapper)
 library(SpatialExperiment)
+library(tidyr)
 # load data from previous chapter
 # (past quality control & clustered)
 spe <- readRDS("img-spe_cl.rds")
@@ -159,11 +159,15 @@ this can be parallelized, e.g., across fields of view (FOVs) or tissue sections.
 visium-mouse_brain.html#Spatial-communication-inference).]{.aside}
 
 ```{r ccc, message=FALSE}
+# realize expression matrix
+logcounts(sub) <- as(logcounts(sub), "dgCMatrix")
+
 # convert 'SpatialExperiment' (R) to 
 # 'AnnData' (Python) using 'anndataR'
 ad <- as_AnnData(sub, 
     x_mapping="logcounts", 
     output_class="ReticulateAnnData")
+
 # run CCC inference using 'COMMOT'
 ct <- import("commot")
 ct$tl$spatial_communication(ad,
@@ -174,11 +178,13 @@ ct$tl$spatial_communication(ad,
     pathway_sum=TRUE,
     heteromeric_rule="min",
     heteromeric_delimiter="_")
+
 # extract 'data.frame's containing
 # sender & receiver CCC estimates
 ccc <- list(
     s=ad$obsm$`commot-CellChatDB-sum-sender`,
     r=ad$obsm$`commot-CellChatDB-sum-receiver`)
+
 # add CCC inference results as cell metadata
 for (df in ccc) colData(sub)[names(df)] <- df
 ```
@@ -197,9 +203,12 @@ determines the number of cells to consider as potential communication partners:
 
 ```{r th, fig.width=4, fig.height=3}
 #| code-fold: true
+# get distance of 10th nearest neighbor
 xy <- spatialCoords(spe)
 ns <- RANN::nn2(xy, xy, 11)
 ds <- ns$nn.dists[, 11]
+
+# visualize distribution across cells
 par(mar=c(4,4,2,0))
 hist(ds, n=200,
     xlim=c(0, 60), ylim=c(0, 12e3),
@@ -303,20 +312,27 @@ and receiver estimates) and visualize subpopulation-level results in a heatmap,
 using SCE-friendly functions for aggregation and visualization available through
 packages like `r BiocStyle::Biocpkg("scuttle")` and `r BiocStyle::Biocpkg("scater")`.
 
+```{r mu-sr}
+# aggregate estimates by cluster (separately for sender/receiver)
+names(as) <- as <- assayNames(sce)
+mu <- lapply(as, \(a) {
+    pb <- aggregateAcrossCells.se(sce, factors=sce$Leiden, assay.type=a)
+    mx <- sweep(assay(pb, "sums"), 2, pb$counts, `/`)
+    assays(pb) <- `names<-`(list(mx), a)
+    colnames(pb) <- pb[[1]]
+    return(pb)
+})
+assay(mu$r, "s") <- assay(mu$s)
+(mu <- mu$r)
+```
+
 ```{r viz-hm, fig.width=5, fig.height=4}
 #| layout-ncol: 2
-# aggregate estimates by cluster
-# (separately for sender/receiver)
-mu <- aggregateAcrossCells(sce, 
-    ids=sce$Leiden, 
-    statistics="mean",
-    use.assay.type=assayNames(sce))
-
 # visualize scales values across clusters
-for (. in assayNames(mu)) {
-    plotHeatmap(mu, exprs_values=.,
+for (sr in assayNames(mu)) {
+    plotHeatmap(mu, exprs_values=sr,
         features=grep("-", rownames(sce)),
-        main=switch(., s="sender", r="receiver"),
+        main=switch(sr, s="sender", r="receiver"),
         show_colnames=TRUE, center=TRUE, scale=TRUE)
 }
 ```

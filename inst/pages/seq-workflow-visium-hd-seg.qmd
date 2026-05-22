@@ -21,7 +21,7 @@ library(sf)
 library(arrow)
 library(dplyr)
 library(tidyr)
-library(scuttle)
+library(scrapper)
 library(SingleR)
 library(Voyager)
 library(ggplot2)
@@ -213,16 +213,16 @@ most `r max[1]`/`r max[2]` cells are mapped to any bin.
 ### Non-spatial
 
 We can caluclate standard cell-level quality control metrics using 
-`r BiocStyle::Biocpkg("scuttle")`'s `addPerCellQCMetrics()` function,
+`r BiocStyle::Biocpkg("scrapper")`'s `quickRnaQc.se()` function,
 specifying mitochondrial features as `subsets` of particular interest.
 
-```{r qc-scuttle}
-sub <- list(mt=grep("^MT-", rownames(sfe)))
-sfe <- addPerCellQCMetrics(sfe, subsets=sub)
+```{r qc-scrapper}
+mt <- grepl("^MT-", rownames(sfe))
+sfe <- quickRnaQc.se(sfe, subsets=list(mt=mt))
 sfe$log_sum <- log1p(sfe$sum)
 head(colData(sfe)[c(
     "um2", "nuc_um2", "nuc",
-    "sum", "subsets_mt_percent")])
+    "sum", "subset.proportion.mt")])
 ```
 
 ```{r message=FALSE, fig.width=8, fig.height=4}
@@ -233,8 +233,8 @@ plotSpatialFeature(sfe[, sfe$roi],
     ggtitle("log-library size") +
 plotSpatialFeature(sfe[, sfe$roi], 
     colGeometryName="cellseg", 
-    features="subsets_mt_percent") +
-    ggtitle("% mitochondrial") +
+    features="subset.proportion.mt") +
+    ggtitle("mitochondrial proportion") +
 plot_layout(nrow=1) &
     theme(plot.title=element_text(hjust=0.5)) &
     scale_fill_gradientn(NULL, colors=pals::jet())
@@ -249,12 +249,15 @@ which we recommend (see @sec-seq-quality-control).
 
 ```{r qc-SpotSweeper}
 # determine spatial outliers for different metrics
-qc <- c("sum", "detected", "subsets_mt_percent")
-for (. in qc) {
-    sfe <- localOutliers(sfe, 
-        workers=4, metric=., 
-        log=TRUE, direction="lower")
-}
+sfe <- localOutliers(sfe,
+    workers=4, metric="sum",
+    log=TRUE, direction="lower")
+sfe <- localOutliers(sfe,
+    workers=4, metric="detected",
+    log=TRUE, direction="lower")
+sfe <- localOutliers(sfe,
+    workers=4, metric="subset.proportion.mt",
+    log=FALSE, direction="higher")
 # get cells x flags matrix
 cd <- colData(sfe)
 ol <- grep("outliers$", names(cd))
@@ -342,8 +345,8 @@ assigned the label of the best-fitting pseudo-bulk scRNA-seq reference profile.
 
 ```{r lab-lv1}
 # log-library size normalization
-sfe <- logNormCounts(sfe)
-.sce <- logNormCounts(.sce)
+sfe <- normalizeRnaCounts.se(sfe)
+.sce <- normalizeRnaCounts.se(.sce)
 # perform label transfer at the Visium HD cell-level,
 # using pseudo-bulk Chromium profiles as reference
 res <- SingleR(test=sfe, ref=.sce, labels=.sce$Level1, aggr.ref=TRUE)

@@ -28,18 +28,18 @@ Lastly, we will save the post-QC Xenium dataset for use in later chapters.
 ### Dependencies
 
 ```{r deps, message=FALSE, warning=FALSE}
-library(arrow)
 library(dplyr)
-library(tidyr)
-library(scater)
 library(ggplot2)
 library(ggspavis)
-library(patchwork)
 library(OSTA.data)
+library(patchwork)
+library(scrapper)
+library(scuttle)
 library(SpaceTrooper)
-library(STexampleData)
 library(SpatialExperiment)
 library(SpatialExperimentIO)
+library(STexampleData)
+library(tidyr)
 ```
 
 ## Importing data
@@ -89,6 +89,7 @@ pa <- OSTA.data_load(id, mol=FALSE)
 dir.create(td <- tempfile())
 unzip(pa, exdir=td)
 cos <- readCosmxSXE(td, addTx=FALSE)
+
 # prepare data for 'SpaceTrooper' 
 cos <- updateCosmxSPE(cos, td, sampleName="CosMx")
 cos <- readAndAddPolygonsToSPE(cos)
@@ -136,18 +137,19 @@ or surface; see above).
 ### scRNA-seq
 
 We start out by computing QC metrics that are standard for scRNA-seq data,
-using the `r BiocStyle::Biocpkg("scuttle")` package. Here, `use.altexps=TRUE`
-allows quantification across alternative features, such as negative probes, 
-in addition to RNA targets, which are contain in the primary object's `assay`.
+using the `r BiocStyle::Biocpkg("scrapper")` package. Although not available 
+for these data, the `altexp.proportions` argument could be used to quantify
+metrics across alternative experiments, such as negative probes or blank codes, 
+in addition to RNA targets, which represent the object's primary data.
 
 ::: {.aside}
 See also @sec-seq-quality-control.
 :::
 
-```{r scuttle-qc}
-# compute standard scRNA-seq QC metrics for the Xenium dataset (e.g.,
-# total counts & unique features, for RNA targets & negative probes)
-xen <- addPerCellQCMetrics(xen, use.altexps=TRUE)
+```{r scrapper-qc}
+# compute standard QC metrics for Xenium
+# (i.e., total counts & unique features)
+xen <- quickRnaQc.se(xen, subsets=list())
 ```
 
 ```{r gc-1, include=FALSE}
@@ -179,17 +181,18 @@ lapply(flu, \(.) {
 ```
 
 ```{r gc-2, include=FALSE}
-# garbage collection
-# to reduce memory usage for building book with GitHub Actions
+# garbage collection to reduce memory usage 
+# for building book with GitHub Actions
 gc()
 ```
 
 ### Morphology
 
-`r BiocStyle::Biocpkg("SpaceTrooper")`'s `spatialPerCellQC` function can be used to compute a set of 
-metrics that are particular to imaging-based ST data; examples listed below.
-In addition, the function incorporates an internal call to `perCellQCMetrics`
-from the `r BiocStyle::Biocpkg("scuttle")` package, to compute some standard 
+`r BiocStyle::Biocpkg("SpaceTrooper")`'s `spatialPerCellQC` function can be 
+used to compute a set of metrics that are particular to imaging-based ST data; 
+examples listed below. 
+In addition, the function incorporates an internal call to `quickRnaQc.se`
+from the `r BiocStyle::Biocpkg("scrapper")` package to compute some standard 
 scRNA-seq QC metrics on an `altExp`; here, we specify using negatives probes.
 
 ::: {.aside}
@@ -198,7 +201,7 @@ and nearest FOV borders: `dist_border_x/y` and `dist_border`, respectively;
 we will get back to this in @sec-img-quality-control-cos.
 :::
 
-```{r SpaceTrooper-qc, message=FALSE, echo=2:4}
+```{r SpaceTrooper-qc, message=FALSE, warning=FALSE, echo=2:4}
 old <- names(colData(cos))
 # compute 'SpaceTrooper' QC metrics
 cos <- spatialPerCellQC(cos, use_altexps="NegPrb")

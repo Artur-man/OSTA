@@ -13,10 +13,11 @@ Here, we will run standard non-spatial and spatially-aware approaches; for a mor
 ### Dependencies
 
 ```{r load-libs, message=FALSE, warning=FALSE}
-library(scran)
-library(scater)
-library(igraph)
+# library(scran)
+# library(scater)
+# library(igraph)
 library(Banksy)
+library(scrapper)
 library(ggplot2)
 library(ggspavis)
 library(patchwork)
@@ -49,36 +50,48 @@ spe$Label <- df$Annotation[cs]
 
 ## Normalization
 
-Library size-based normalization, as typically used for scRNA-seq data, has been shown to be problematic for ST data, especially so for targeted panels underlying current commercial imaging-based ST platforms [@Atta2024-gene-count; @Bhuva2024-library-size].
-For lack of a better approach, we here use standard log-library size normalization.
-We caution readers, however, to keep an eye out in the literature for attempts to provide a better strategy.
-[See also @sec-ind-normalization.]{.aside}
+Library size-based normalization, as typically used for scRNA-seq data, has 
+been shown to be problematic for ST data, especially so for targeted panels 
+underlying current commercial imaging-based ST platforms [@Atta2024-gene-count;
+@Bhuva2024-library-size]. 
+For lack of a better approach, we here use standard log-library size normalization. 
+We caution readers, however, to keep an eye out in the literature for attempts 
+to provide a better strategy. [See also @sec-ind-normalization.]{.aside}
 
 ```{r log}
-spe <- logNormCounts(spe)
+spe <- normalizeRnaCounts.se(spe)
 ```
 
 ## Feature selection
 
-At this stage, we would typically perform selection of (e.g., highly variable) features; see @sec-seq-intermediate-processing.
-The dataset at hand, however, is targeted and relatively low-plex, so that features have already been selected by design (e.g., different targets will be included in immuno-oncology and neuroscience panels).
+At this stage, we would typically perform selection of (e.g., highly variable) 
+features; see @sec-seq-intermediate-processing. The dataset at hand, however, 
+is *targeted* and relatively low-plex, so that 'interesting' features have 
+already been selected by design (e.g., different targets will be included 
+in immuno-oncology as opposed to neuroscience panels).
 
 ## Dimension Reduction
 
-As a baseline, we will perform principal component analysis (PCA), which underlies many standard scRNA-seq analysis pipelines, such as (spatially unaware) graph-based clustering based on a shared nearest neighbor (SNN) graph and the Leiden or Louvain algorithm for community detection.
+As a baseline, we will perform principal component analysis (PCA), which 
+underlies many standard scRNA-seq analysis pipelines, such as (spatially 
+unaware) graph-based clustering based on a shared nearest neighbor (SNN) 
+graph and the Leiden or Louvain algorithm for community detection.
 
 ```{r dr-tx}
-spe <- runPCA(spe, ncomponents=20)
+spe <- runPca.se(spe, features=rownames(spe), number=20)
 ```
 
-For comparison, we will also perform spatially-aware dimension reduction with `r BiocStyle::Biocpkg("BANKSY")` [@Singhal2024-BANKSY]; see @sec-ind-dimensionality-reduction.
+For comparison, we will also perform spatially-aware dimension reduction 
+with `r BiocStyle::Biocpkg("BANKSY")` [@Singhal2024-BANKSY]; 
+see @sec-ind-dimensionality-reduction.
 
 ```{r dr-sp, message=FALSE}
 spe <- computeBanksy(spe, assay_name="logcounts")
 spe <- runBanksyPCA(spe, npcs=20, lambda=0.2)
 ```
 
-To not confuse different types of PCs, we rename `reducedDims` to end in `_sp` and `_tx` for spatially aware and unaware results, respectively.
+To not confuse different types of PCs, we rename `reducedDims` to end in 
+`_sp` and `_tx` for spatially aware and unaware results, respectively.
 
 ```{r dr-nm}
 reducedDimNames(spe) <- c("PCA_tx", "PCA_sp")
@@ -86,17 +99,20 @@ reducedDimNames(spe) <- c("PCA_tx", "PCA_sp")
 
 ## Clustering
 
-Here, we perform standard graph-based clustering by (i) constructing a shared nearest neighbor (SNN) graph and (ii) using the Leiden algorithm for community detection.
-By basing the SNN graph on standard and `BANKSY` PCs, respectively, we can obtain non-spatial as well as spatially aware assignments:
+Here, we perform standard graph-based clustering by (i) constructing a shared 
+nearest neighbor (SNN) graph and (ii) using the Leiden algorithm for community 
+detection. By basing the SNN graph on standard and `BANKSY` PCs, respectively, 
+we can obtain non-spatial as well as spatially aware assignments:
 
 ```{r clu}
+# PCA-based shared nearest-neighbor (SNN) graph;
+# cluster via Leiden community detection algorithm
 pcs <- c(Leiden="PCA_tx", Banksy="PCA_sp")
-for (. in names(pcs)) {
-    # build cellular shared nearest-neighbor (SNN) graph
-    g <- buildSNNGraph(spe, use.dimred=pcs[.], type="jaccard", k=20)
-    # cluster using Leiden community detection algorithm
-    k <- cluster_leiden(g, objective_function="modularity", resolution=0.8)
-    spe[[.]] <- factor(k$membership)
+for (k in names(pcs)) {
+    spe <- clusterGraph.se(spe, 
+        method="leiden", resolution=0.7, 
+        output.name=k, reddim.type=pcs[[k]], 
+        more.build.args=list(weight.scheme="jaccard"))
 }
 ```
 
@@ -115,7 +131,6 @@ lapply(c("Label", "Leiden", "Banksy"), \(.) {
     scale_color_manual(values=unname(pals::trubetskoy()))
 ```
 
-
 ## Appendix
 
 ### Save data {.unnumbered}
@@ -124,7 +139,6 @@ lapply(c("Label", "Leiden", "Banksy"), \(.) {
 colLabels(spe) <- spe$Banksy
 saveRDS(spe, "img-spe_cl.rds")
 ```
-
 
 ### References {.unnumbered}
 

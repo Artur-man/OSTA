@@ -20,13 +20,12 @@ We further compare these to DEGs as well as HVGs, and discuss the conceptual sim
 ```{r deps, message=FALSE, warning=FALSE}
 library(DESpace)
 library(dplyr)
-library(ggspavis)
 library(ggrepel)
+library(ggspavis)
 library(nnSVG)
 library(patchwork)
 library(pheatmap)
-library(scater)
-library(scran)
+library(scrapper)
 library(SpatialExperiment)
 library(tidyr)
 ```
@@ -60,23 +59,21 @@ Secondly, HVGs may be selected based on their rank, using a fixed number `n` or 
 [A more stringent selection may be obtained by also adding an `FDR.threshold` on the significance of large variances *relative* to other genes.]{.aside}
 
 ```{r hvg}
-# fit mean-variance relationship, decomposing 
-# variance into technical & biological components
-dec <- modelGeneVar(spe)
-
-# select top 2,000 ranked genes (in terms
-# of their biological variance component)
-hvg <- getTopHVGs(dec, n=2e3)
+# 1. fit mean-variance relationship (technical vs. biological variance)
+# 2. select top-2,000 ranked genes (wrt. biological variance component)
+spe <- chooseRnaHvgs.se(spe, top=2e3, more.var.args=list(use.min.width=TRUE))
+sum(rowData(spe)$hvg)
 ```
 
-```{r plt-hvgs, fig.width=5, fig.height=4}
+```{r plt-hvgs, warning=FALSE, fig.width=5, fig.height=4}
 #| code-fold: true
 # visualize mean-variance relationship
-par(mar = c(4, 4, 0, 0))
-fit <- metadata(dec)
-plot(fit$mean, fit$var, cex = 0.5, xlab = "mean expression", ylab = "variance")
-points(dec[hvg, "mean"], dec[hvg, "total"], cex = 0.5, col = "dodgerblue")
-curve(fit$trend(x), add = TRUE, lwd = 2, col = "tomato")
+par(mar=c(4, 4, 0, 0))
+rd <- rowData(spe)
+plot(rd$means, rd$variances, cex=0.5, 
+    col=c("black", "dodgerblue")[rd$hvg+1], 
+    xlab="mean expression", ylab="variance")
+curve(approxfun(rd$means, rd$fitted)(x), col="tomato", lwd=2, add=TRUE)
 ```
 
 ### Differentially expressed genes (DEGs) {#sec-ind-feature-selection-testing-degs}
@@ -87,33 +84,32 @@ For details on identifying DE genes between groups of cells from scRNA-seq data,
 
 Here, we will use pairwise t-tests and specifically test for upregulation (as opposed to downregulation), i.e. expression should be higher in the cluster for which a gene is reported to be a marker; see @sec-ind-clustering for details.
 
-```{r deg, fig.width=10, fig.height=3}
+```{r deg}
 # differential gene expression analysis
-mgs <- findMarkers(spe, groups=spe$BayesSpace, direction="up")
+mgs <- scoreMarkers.se(spe, groups=spe$BayesSpace)
 # select for a few markers per cluster
-deg <- lapply(mgs, \(df) rownames(df)[df$Top <= 3])
+deg <- lapply(mgs, \(df) head(rownames(df), 10))
 length(deg <- unique(unlist(deg)))
 ```
 
 We can visualize selected marker genes as a heatmap where bins represent the average expression (here, log-transformed library size-normalized counts) of a given gene (= columns) in a given cluster (= rows).
 [To visually amplify differences, we use `scale = "column"`. This will, for every gene, subtract the mean and divide by the standard deviation across per-cluster means, bringing genes of potentially very different expression levels to a comparable scale.]{.aside}
 
-```{r plt-deg-hm, fig.width=9, fig.height=3}
+```{r plt-deg-hm, fig.width=10, fig.height=3}
 #| code-fold: true
 # compute cluster-wise averages
-pbs <- aggregateAcrossCells(spe, 
-    ids = spe$BayesSpace, subset.row = deg, 
-    use.assay.type = "logcounts", statistics = "mean")
+pbs <- aggregateAcrossCells.se(spe[deg, ], spe$BayesSpace, assay.type="logcounts")
+mtx <- t(sweep(assay(pbs, "sums"), 2, pbs$counts, `/`))
 # use gene symbols as feature names
-mtx <- t(assay(pbs))
-colnames(mtx) <- rowData(pbs)$gene_name
+rownames(mtx) <- pbs$BayesSpace
+colnames(mtx) <- rowData(spe[deg, ])$gene_name
 # using pheatmap package
-pheatmap(mat = mtx, scale = "column")
+pheatmap(mat=mtx, scale="column")
 ```
 
 In addition, we can plot in x-y space, i.e. coloring spots by their expression of a given marker gene:
 
-```{r plt-deg-xy, fig.width=10, fig.height=8, message=FALSE}
+```{r plt-deg-xy, fig.width=10, fig.height=7, message=FALSE}
 #| code-fold: true
 # select top-3 markers for each cluster & get gene symbols
 gs <- unique(unlist(lapply(mgs, \(df) head(rownames(df), 3))))
@@ -125,10 +121,10 @@ ps <- lapply(gs, \(.) {
         feature_names = "gene_name", 
         assay_name = "logcounts") })
 # figure arrangement
-wrap_plots(ps, nrow = 4) & 
-  theme(legend.key.width = unit(0.4, "lines"), 
-        legend.key.height = unit(0.8, "lines")) & 
-  scale_color_gradientn(colors = rev(hcl.colors(9, "Rocket")))
+wrap_plots(ps, nrow = 4) & theme(
+    legend.key.width = unit(0.4, "lines"), 
+    legend.key.height = unit(0.8, "lines")) & 
+    scale_color_gradientn(colors = rev(hcl.colors(9, "Rocket")))
 ```
 
 ## Spatially-aware
@@ -176,7 +172,7 @@ sub <- filter_genes(sub,     # filter for genes with...
     filter_genes_ncounts=10, # at least 10 counts in
     filter_genes_pcspots=3)  # at least 3% of spots
 # re-normalize counts post-filtering
-sub <- logNormCounts(sub)
+sub <- normalizeRnaCounts.se(sub)
 
 # run nnSVG
 set.seed(123)
@@ -221,8 +217,10 @@ table(res_DESpace$FDR <= 0.05)
 The set of top SVGs may be further investigated, e.g. by plotting the spatial expression of several top genes and via gene pathway analyses (i.e., comparing significant SVGs with known gene sets associated with specific biological functions). 
 
 ```{r top}
-top_HVGs <- getTopHVGs(dec, n=(n <- 6))
-top_DEGs <- lapply(mgs, \(df) rownames(df)[df$Top == 1])
+res <- rowData(spe)$residuals
+top <- chooseHighlyVariableGenes(res, top=6)
+top_HVGs <- rownames(spe)[top]
+top_DEGs <- lapply(mgs, \(df) rownames(df)[2])
 top_DEGs <- unique(unlist(top_DEGs))[seq_len(6)]
 top_DESpace <- res_DESpace$gene_id[seq_len(6)]
 ```
@@ -231,7 +229,7 @@ top_DESpace <- res_DESpace$gene_id[seq_len(6)]
 
 To visualize the expression levels of selected genes in spatial coordinates on the tissue slide, we can use plotting functions from the `r BiocStyle::Biocpkg("ggspavis")` package.
 
-```{r plt-xy, message=FALSE, fig.width=13, fig.height=6}
+```{r plt-xy, message=FALSE, fig.width=12, fig.height=6}
 #| code-fold: true
 # get top SVGs from each method
 gs <- list(
@@ -244,7 +242,7 @@ idx <- match(unlist(gs), rowData(spe)$gene_id)
 # expression plots for each top gene
 ps <- lapply(seq_along(.gs), \(.) {
     plotCoords(spe, 
-        point_size=0,
+        point_size=1/3,
         annotate=.gs[.], 
         assay_name="logcounts", 
         feature_names="gene_name") + 
@@ -260,34 +258,35 @@ wrap_plots(ps, nrow=3) & theme(
 
 ### Comparison
 
-We can compare the ranks of the genes detected by each method and compute pairwise correlations, highlighting two known cortical layer-associated SVGs: *MOBP* and *SNAP25*.
-While all four methods - HVGs, DEGs, SVGs identified through `nnSVG` and `DESpace` - yield similar gene ranks, each method captures distinct aspects of gene expression, with varying pairwise correlations between them.
+We can compare the ranks of genes detected by each method and compute pairwise 
+correlations, highlighting two known cortical layer-associated SVGs: *MOBP* and 
+*SNAP25*. While all four methods -- HVGs, DEGs, SVGs identified through `nnSVG` 
+and `DESpace` -- yield similar gene ranking, each method captures distinct 
+aspects of gene expression, with varying pairwise correlations between them.
 
 ```{r plt-data, message=FALSE, warning=FALSE}
 #| code-fold: true
 # subset data for the 113 genes nnSVG is based on
-sub_gene <- rowData(sub)$gene_id
-sub_DESpace <- res_DESpace[sub_gene, ] 
-sub_HVG <- as.data.frame(dec[sub_gene, ])
+sub_gs <- rowData(sub)$gene_id
+sub_HVG <- as.data.frame(rowData(sub))
+sub_DESpace <- res_DESpace[sub_gs, ] 
 
 # aggregate DEGs for each spatial domain
-subset_mgs <- lapply(mgs, \(x) x[sub_gene, 1:3] |> as.data.frame())
-sub_DEG <- do.call(cbind, subset_mgs) 
-top_cols <- sub_DEG |> select(ends_with(".Top"))
-sub_DEG$Top <- do.call(pmin, c(top_cols, na.rm = TRUE))
+sub_DEG <- do.call(cbind, lapply(mgs, \(df) data.frame(df[sub_gs, ]))) 
+top_cols <- select(sub_DEG, ends_with(".cohens.d.min.rank"))
+sub_DEG$Top <- do.call(pmin, c(top_cols, na.rm=TRUE))
 
 # compute ranks 
-sub_DESpace$rank <- rank(sub_DESpace$FDR, ties.method = "first")
-sub_HVG$rank <- rank(-1 * sub_HVG$bio, ties.method = "first")
-sub_DEG$rank <- rank(sub_DEG$Top, ties.method = "first")
+sub_DEG$rank <- rank(sub_DEG$Top, ties.method="first")
+sub_HVG$rank <- rank(-sub_HVG$residuals, ties.method="first")
+sub_DESpace$rank <- rank(sub_DESpace$FDR, ties.method="first")
 
 # combine 'rank' column for each method
 res_all <- list(
-    nnSVG = as.data.frame(res_nnSVG),
-    DESpace = sub_DESpace, HVGs = sub_HVG, DEGs = sub_DEG
-)
+    nnSVG=as.data.frame(res_nnSVG),
+    DESpace=sub_DESpace, HVGs=sub_HVG, DEGs=sub_DEG)
 rank_all <- do.call(cbind, lapply(res_all, `[[`, "rank"))
-rank_all <- data.frame(gene_id = sub_gene, rank_all)
+rank_all <- data.frame(gene_id=sub_gs, rank_all)
 ```
 
 ```{r plt-scatter-nnsvg, message=FALSE, warning=FALSE, fig.width=10, fig.height=7}
@@ -298,11 +297,11 @@ known_genes <- c("MOBP", "SNAP25")
 method_names <- c("nnSVG", "DESpace", "HVGs", "DEGs")
 # convert data structure
 rank_long <- rank_all |>
-    left_join(data.frame(rowData(sub)[, c("gene_id", "gene_name")]), by = "gene_id") |>
+    left_join(data.frame(rowData(sub)[, c("gene_id", "gene_name")]), by="gene_id") |>
     select(all_of(c("gene_name", method_names))) |>
-    pivot_longer(cols = c(nnSVG, DESpace, HVGs, DEGs), 
-                 names_to = "method", 
-                 values_to = "rank")
+    pivot_longer(cols=c(nnSVG, DESpace, HVGs, DEGs), 
+                 names_to="method", 
+                 values_to="rank")
 # all pairwise comparisons
 df_pairs <- t(combn(method_names, 2)) |> as.data.frame()
 # function to plot each pairwise comparison
@@ -310,18 +309,18 @@ plot_pairwise_comparison <- function(m1, m2, df) {
   # filter the data for the two methods being compared
   df <- df |>
       filter(method %in% c(m1, m2)) |>
-      pivot_wider(names_from = method, values_from = rank)
+      pivot_wider(names_from=method, values_from=rank)
   # compute pearson correlation between methods
-  cor_val <- cor(df[[m1]], df[[m2]], method = "spearman")
+  cor_val <- cor(df[[m1]], df[[m2]], method="spearman")
   # plot
-  ggplot(df, aes(x = .data[[m1]], y = .data[[m2]])) +
+  ggplot(df, aes(x=.data[[m1]], y=.data[[m2]])) +
       geom_point() + 
-      geom_text_repel(data = df %>% filter(gene_name %in% known_genes), 
-                      aes(label = gene_name), color = "red", size = 3.25, 
-                      nudge_x = 50, nudge_y = 10, box.padding = 0.5) +
-      labs(x = paste(m1, "rank"), y = paste(m2, "rank"),
-           title = paste(m2, "vs.", m1, ": Cor = ", round(cor_val, 2))) +
-      #scale_color_manual(values = c("darkorange", "firebrick3", "deepskyblue2")) +
+      geom_text_repel(data=df %>% filter(gene_name %in% known_genes), 
+                      aes(label=gene_name), color="red", size=3.25, 
+                      nudge_x=50, nudge_y=10, box.padding=0.5) +
+      labs(x=paste(m1, "rank"), y=paste(m2, "rank"),
+           title=paste(m2, "vs.", m1, ": Cor=", round(cor_val, 2))) +
+      #scale_color_manual(values=c("darkorange", "firebrick3", "deepskyblue2")) +
       theme_bw() + coord_fixed() + 
       xlim(c(0, 120)) + ylim(c(0, 120))
 }
@@ -331,7 +330,7 @@ plots <- lapply(seq_len(nrow(df_pairs)), \(i) {
     plot_pairwise_comparison(df_pairs[i, 2], df_pairs[i, 1],rank_long)
 })
 
-wrap_plots(plots, ncol = 3)
+wrap_plots(plots, ncol=3)
 ```
 
 :::
