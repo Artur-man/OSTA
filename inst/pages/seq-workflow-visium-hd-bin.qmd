@@ -680,8 +680,6 @@ In this workflow, we demonstrated how to perform a standard analysis pipeline on
 
 - [Sanofi's ENACT pipeline](https://github.com/Sanofi-Public/enact-pipeline) for cell segmentation, bin-to-cell assignment, and cell type inference for Visium HD data [@Kamel2025-ENACT].
 
-- [GitHub repository of `bin2cell`](https://github.com/Teichlab/bin2cell) for H&E segmentation and obtaining cell boundaries.
-
 :::
 
 ### References {.unnumbered}

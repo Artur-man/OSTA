@@ -439,6 +439,8 @@ plot_layout(nrow=1, widths=ws, guides="collect") &
 
 - This workflow is partly based on a workshop that has been taught at the European Bioconductor Conference 2025 (EuroBioC2025). Corresponding workshop material can be found [here](https://estellad.github.io/EuroBioC2025OSTAWorkshop/index.html).
 
+- [GitHub repository of `bin2cell`](https://github.com/Teichlab/bin2cell) for H&E segmentation and obtaining cell boundaries.
+
 - [10x Genomics' pipeline](https://www.10xgenomics.com/analysis-guides/segmentation-visium-hd) on "Nuclei Segmentation and Custom Binning of Visium HD Gene Expression Data".
 
 :::
