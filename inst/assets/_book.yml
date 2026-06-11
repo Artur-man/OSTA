@@ -49,7 +49,7 @@ book:
         - pages/mult-structure-based.qmd
     - part: "Cross-platform analyses"
       chapters:
-        - pages/crs-spatial-registration.qmd
+        - pages/crs-registration.qmd
         - pages/crs-imputation.qmd
         - pages/crs-workflow-xenvis.qmd
   appendices:
