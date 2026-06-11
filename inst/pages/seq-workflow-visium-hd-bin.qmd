@@ -78,7 +78,7 @@ lapply(lab, \(.) {
   theme(legend.key.size=unit(0, "lines"))
 ```
 
-Another resolution of VisiumHD with 16 µm bin can be read in as follow:
+Another resolution of Visium HD with 16 µm bin can be read in as follow:
 
 ```{r load-vhd16, message=FALSE}
 # read 16um bins into 'SpatialExperiment'
@@ -672,14 +672,18 @@ In this workflow, we demonstrated how to perform a standard analysis pipeline on
 
 [Please see the following chapter for cell-level Visium HD data analysis.]{.aside}
 
-- [GitHub repository of `bin2cell`](https://github.com/Teichlab/bin2cell) for H&E segmentation and obtaining cell boundaries.
+
+## Appendix
+
+::: {.callout-tip icon="false" title="Further reading"}
 
 - [Analysis pipeline](https://www.10xgenomics.com/analysis-guides/segmentation-visium-hd) by 10x Genomics (April 2024). The analysis consists of three steps: run `StarDist` nuclei segmentation in Python, sum gene expression into nuclei based on segmentation mask, and downstream analysis with `scanpy` and `anndata`.
 
-- [Pipeline](https://github.com/Sanofi-Public/enact-pipeline) on cell typing for Visium HD in Python by Sanofi.
+- [Sanofi's ENACT pipeline](https://github.com/Sanofi-Public/enact-pipeline) for cell segmentation, bin-to-cell assignment, and cell type inference for Visium HD data [@Kamel2025-ENACT].
 
+- [GitHub repository of `bin2cell`](https://github.com/Teichlab/bin2cell) for H&E segmentation and obtaining cell boundaries.
 
-## Appendix
+:::
 
 ### References {.unnumbered}
 
