@@ -267,6 +267,7 @@ benchmark, or other, references and resources mentioned throughout the book.
 | | |
 |-|-|
 | `r Githubpkg("Teichlab/bin2cell)")` | @Polanski2024-bin2cell |
+| `r Githubpkg("stardist/stardist")` | @Weigert2022-StarDist |
 | `r Githubpkg("The-Mitra-Lab/SMURF")` | @Guo2025-SMURF |
 | SpaceRanger v4 | [10x Genomics](https://www.10xgenomics.com/analysis-guides/segmentation-visium-hd) |
 | [Sanofi's ENACT pipeline](https://github.com/Sanofi-Public/enact-pipeline) | @Kamel2025-ENACT |

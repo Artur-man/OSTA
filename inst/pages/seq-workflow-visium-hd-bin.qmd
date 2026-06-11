@@ -672,7 +672,6 @@ In this workflow, we demonstrated how to perform a standard analysis pipeline on
 
 [Please see the following chapter for cell-level Visium HD data analysis.]{.aside}
 
-
 ## Appendix
 
 ::: {.callout-tip icon="false" title="Further reading"}

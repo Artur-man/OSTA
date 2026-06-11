@@ -6,7 +6,7 @@
 
 ### Introduction
 
-As of June 2025, Visium HD enables direct output of H&E-segmented cell-level data, in addition to the previous `binned_outputs` at 2, 8, and 16 µm, from [SpaceRanger v4](https://www.10xgenomics.com/analysis-guides/segmentation-visium-hd). This update simplifies the additional cell segmentation required when using `bin2cell` or `StarDist`. However, a comparative study of segmentation methods on Visium HD data has yet to be conducted. The morphology-driven, nucleus-based segmentation produces polygons representing nuclei and cells across the entire tissue, as illustrated in the schematics provided by 10x Genomics.
+As of June 2025, Visium HD enables direct output of H&E-segmented cell-level data, in addition to the previous `binned_outputs` at 2, 8, and 16 µm, from [SpaceRanger v4](https://www.10xgenomics.com/analysis-guides/segmentation-visium-hd). This update simplifies the additional cell segmentation required when using `r BiocStyle::Githubpkg("Teichlab/bin2cell)")` [@Polanski2024-bin2cell] or `r `BiocStyle::Githubpkg("stardist/stardist")` [@Weigert2022-StarDist]. However, a comparative study of segmentation methods on Visium HD data has yet to be conducted. The morphology-driven, nucleus-based segmentation produces polygons representing nuclei and cells across the entire tissue, as illustrated in the schematics provided by 10x Genomics.
 
 ```{r fig-10x-vhdseg, echo = FALSE, out.width = "50%", fig.cap= "Two approaches for binning the 2x2 µm barcode squares in Visium HD data"}
 knitr::include_graphics("../images/VisiumHD_nuclei_segmentation_binning_10x.png")
@@ -438,6 +438,8 @@ plot_layout(nrow=1, widths=ws, guides="collect") &
 ::: {.callout-tip icon="false" title="Further reading"}
 
 - This workflow is partly based on a workshop that has been taught at the European Bioconductor Conference 2025 (EuroBioC2025). Corresponding workshop material can be found [here](https://estellad.github.io/EuroBioC2025OSTAWorkshop/index.html).
+
+- [10x Genomics' pipeline](https://www.10xgenomics.com/analysis-guides/segmentation-visium-hd) on "Nuclei Segmentation and Custom Binning of Visium HD Gene Expression Data".
 
 :::
 
