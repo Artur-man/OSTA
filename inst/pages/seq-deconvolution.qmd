@@ -1,3 +1,7 @@
+```{r}
+#| eval: true
+knitr::opts_chunk$set(eval=FALSE)
+```
 # Deconvolution {#sec-seq-deconvolution}
 
 {{< include _start.qmd >}}
@@ -459,15 +463,17 @@ score would be returned to indicate doublets with two predicted cell types.]{.as
 
 ## Appendix
 
-### Benchmarks {.unnumbered}
+::: {.callout-tip icon="false" title="Further reading"}
 
-Benchmarking studies of deconvolution methods often require generating synthetic spots to establish a ground truth for cell type proportions. This process involves either simulating artificial tissue patterns or aggregating counts from scRNA-seq or imaging-based spatial transcriptomics data into spots. However, it is equally important to evaluate how these methods perform in tissues with highly spatially-heterogeneous cell type compositions, such as real cancer samples. Below are three comprehensive benchmarking studies, two of which that incorporate both artificial and real datasets.
+Benchmarking studies of deconvolution methods often require generating synthetic spots to establish a ground truth for cell type proportions. This process involves either simulating artificial tissue patterns or aggregating counts from scRNA-seq or imaging-based spatial transcriptomics data into spots. However, it is equally important to evaluate how these methods perform in tissues with highly spatially-heterogeneous cell type compositions, such as real cancer samples. Below are three comprehensive benchmarking studies, two of which incorporate both artificial and real datasets.
 
 - @Sang-aram2023-Spotless developed a pipeline to benchmark 11 deconvolution methods, including `RCTD`, across 63 synthetic, 3 binned, and 2 real datasets. `RCTD` and `cell2location` were the most recommended methods. Figure 2 gives an overview of the benchmarking results.
 
 - @Li2023-benchmark-deconvolution benchmarked 18 deconvolution methods, including `RCTD`, across 50 simulated and real datasets. Among these methods, `CARD`, `cell2location`, and `Tangram` are highly recommended. Figure 1 summarizes the method performance, and Figure 4 gives a flowchart of how to decide on which method to use.
 
 - @Gaspard-Boulinc2025-deconvolution review and compare available cell-type deconvolution methods, and provide a continuously updated web-based summary table.
+
+:::
 
 
 ### References {.unnumbered}
