@@ -8,7 +8,7 @@
 
 This chapter demonstrates methods for several intermediate processing steps -- normalization, feature selection, and dimensionality reduction -- that are required before downstream analysis methods can be applied.
 
-We use methods from the `r BiocStyle::Biocpkg("scater")` [@McCarthy2017-scater] and `r BiocStyle::Biocpkg("scran")` [@Lun2016-scran] Bioconductor packages, which were originally developed for scRNA-seq data, with the (simplified) assumption that these methods can be applied to spot-based ST data by treating spots as equivalent to cells. In addition, we discuss alternative spatially-aware methods, and provide links to later parts of the book where these methods are described in more detail.
+We use methods from the `r BiocStyle::Biocpkg("scrapper")` Bioconductor package, which were originally developed for scRNA-seq data, with the (simplified) assumption that these methods can be applied to spot-based ST data by treating spots as equivalent to cells. In addition, we discuss alternative spatially-aware methods, and provide links to later parts of the book where these methods are described in more detail.
 
 Following the processing steps, this chapter also includes short demonstrations for subsequent steps, including clustering and identification of marker genes. For more details on these steps, see the later analysis chapters or workflow chapters.
 
@@ -16,8 +16,7 @@ Following the processing steps, this chapter also includes short demonstrations 
 ### Dependencies
 
 ```{r load-libs, message=FALSE, warning=FALSE}
-library(scran)
-library(scater)
+library(scrapper)
 library(ggspavis)
 library(pheatmap)
 library(patchwork)
@@ -51,7 +50,7 @@ This dataset consists of one sample (Visium capture area) of postmortem human br
 
 ### Library size normalization
 
-A simple and fast approach for normalization is "library size normalization", which consists of calculating log-transformed normalized counts ("logcounts") using library size factors, treating each spot as equivalent to a single cell. This method is simple, fast, and generally provides a good baseline. It can be calculated using the `r BiocStyle::Biocpkg("scater")` [@McCarthy2017-scater] and `r BiocStyle::Biocpkg("scran")` [@Lun2016-scran] packages.
+A simple and fast approach for normalization is "library size normalization", which consists of calculating log-transformed normalized counts ("logcounts") using library size factors, treating each spot as equivalent to a single cell. This method is simple, fast, and generally provides a good baseline. It can be calculated using the `r BiocStyle::Biocpkg("scrapper")` package.
 [See also @sec-ind-normalization.]{.aside}
 
 However, library size normalization does not make use of any spatial information. In some datasets, the simplified assumption that each spot can be treated as equivalent to a single cell is not appropriate, and can create problems during analysis. (*"Library size confounds biology in spatial transcriptomics data"* [@Bhuva2024-library-size].)
@@ -59,14 +58,11 @@ However, library size normalization does not make use of any spatial information
 Some alternative non-spatial methods from scRNA-seq workflows (e.g. normalization by deconvolution) are also less appropriate for spot-based ST data, since spots can contain multiple cells from one or more cell types, and datasets can contain multiple samples (e.g. multiple tissue sections), which may result in sample-specific clustering.
 
 ```{r logcounts, message=FALSE, fig.width=5, fig.height=4}
-# calculate library size factors
-spe <- computeLibraryFactors(spe)
+# calculate logcounts using library size factors
+spe <- normalizeRnaCounts.se(spe)
 
 summary(sizeFactors(spe))
 hist(sizeFactors(spe), breaks = 50, main = "Histogram of size factors")
-
-# calculate logcounts and store in new assay
-spe <- logNormCounts(spe)
 
 assayNames(spe)
 ```
@@ -94,17 +90,24 @@ table(mt)
 spe <- spe[!mt, ]
 ```
 
-Next, apply methods from `r BiocStyle::Biocpkg("scran")`. This gives a list of top HVGs, which can be used as the input for subsequent steps. The parameter `prop` defines the proportion of HVGs to select -- for example, `prop = 0.1` returns the top 10%. (Alternatively, argument `n` can be used to selected a fixed number of top HVGs, say 1000 or 2000.)
+Next, apply methods from `r BiocStyle::Biocpkg("scrapper")`. This stores the selected HVGs in `rowData(spe)$hvg`, which can be used as the input for subsequent steps. The argument `top` defines the number of HVGs to select. Here, we select the top 10% of genes. Alternatively, a fixed number of top HVGs may be selected, say 1000 or 2000.
 
 ```{r hvgs, message=FALSE, fig.width=5.5, fig.height=4.5}
-# fit mean-variance relationship
-dec <- modelGeneVar(spe)
+# fit mean-variance relationship and select top HVGs
+spe <- chooseRnaHvgs.se(
+    spe, 
+    top = ceiling(0.1 * nrow(spe)),
+    more.var.args = list(use.min.width = TRUE))
+
 # plot
-plot(dec$mean, dec$total, xlab = "mean (logexpr)", ylab = "variance (logexpr)")
-curve(metadata(dec)$trend(x), add = TRUE, col = "dodgerblue")
+rd <- rowData(spe)
+plot(rd$means, rd$variances, 
+    xlab = "mean (logexpr)", ylab = "variance (logexpr)")
+o <- order(rd$means)
+lines(rd$means[o], rd$fitted[o], col = "dodgerblue")
 
 # select top HVGs
-sel <- getTopHVGs(dec, prop = 0.1)
+sel <- rownames(spe)[rd$hvg]
 # number of HVGs selected
 length(sel)
 ```
@@ -121,16 +124,18 @@ A number of methods have been developed to identify SVGs. For more details and e
 
 A standard next step is to perform dimensionality reduction using principal component analysis (PCA), applied to the set of top HVGs (or SVGs). The set of top principal components (PCs) can then be used as the input for subsequent steps. See @sec-ind-dimensionality-reduction for more details.
 
-Note that we have set a random seed at the start of the chapter for reproducibility, since the fast implementation in `scater::runPCA()` uses a random initialization.
+Note that we have set a random seed at the start of the chapter for reproducibility.
 
 ```{r pca}
-spe <- runPCA(spe, subset_row = sel)
+spe <- runPca.se(spe, features = sel, number = 50)
+colnames(reducedDim(spe, "PCA")) <- paste0(
+    "PC", seq_len(ncol(reducedDim(spe, "PCA"))))
 ```
 
 In addition, we can perform nonlinear dimensionality reduction using the UMAP algorithm, applied to the set of top PCs (default 50). The first two UMAP dimensions can be used for visualization purposes by plotting them on the x and y axes.
 
 ```{r umap}
-spe <- runUMAP(spe, dimred = "PCA")
+spe <- runUmap.se(spe, reddim.type = "PCA")
 ```
 
 
@@ -171,7 +176,7 @@ table(spe$BayesSpace, spe$ground_truth, useNA = "ifany")
 
 Inspecting the spatial distribution of the top PCs, we can observe that the main driver of expression variability is the distinction between white matter (WM) and non-WM cortical layers.
 
-```{r plot-xy-pcs, collapse=TRUE, fig.width=8, fig.height=2.5}
+```{r plot-xy-pcs, collapse=TRUE, fig.width=8, fig.height=2.5, message=FALSE}
 #| code-fold: true
 pcs <- reducedDim(spe, "PCA")
 pcs <- pcs[, seq_len(4)]
@@ -189,17 +194,17 @@ lapply(colnames(pcs), \(.) {
 ```
 
 
-## Differential expression
+## Marker genes
 
-Having clustered our spots to identify spatial domains, we can test for genes that are differentially expressed (DE) between spatial domains, which can be interpreted as marker genes for the spatial domains; see also @sec-ind-feature-selection-testing-degs.
+Having clustered our spots to identify spatial domains, we can identify genes with elevated expression in each spatial domain, which can be interpreted as marker genes for the spatial domains; see also @sec-ind-feature-selection-testing-degs.
 
-Here, we will use pairwise t-tests and specifically test for upregulation (as opposed to downregulation), i.e. expression should be higher in the cluster for which a gene is reported to be a marker. See @sec-ind-clustering for additional details.
+Here, we score candidate marker genes using pairwise effect sizes, i.e. expression should be higher in the cluster for which a gene is reported to be a marker. See @sec-ind-clustering for additional details.
 [Alternatively, we could also test for spatially variable genes (SVGs) within domains to identify genes with spatial expression patterns that vary independently of the spatial arrangement of domains; see @sec-ind-feature-selection-testing-svgs for details.]{.aside}
 
 ```{r mgs}
-# using scran package
-mgs <- findMarkers(spe, groups = spe$BayesSpace, direction = "up")
-top <- lapply(mgs, \(df) rownames(df)[df$Top <= 2])
+# using scrapper package
+mgs <- scoreMarkers.se(spe, groups = spe$BayesSpace)
+top <- lapply(mgs, \(df) rownames(df)[df$cohens.d.min.rank <= 2])
 length(top <- unique(unlist(top)))
 ```
 
@@ -208,11 +213,12 @@ We can visualize selected markers as a heatmap (of cluster-wise expression means
 ```{r plt-mgs-hm, fig.width=8, fig.height=3}
 #| code-fold: true
 # compute cluster-wise averages
-pbs <- aggregateAcrossCells(spe, 
-    ids = spe$BayesSpace, subset.row = top, 
-    use.assay.type = "logcounts", statistics = "mean")
+pbs <- aggregateAcrossCells.se(
+    spe[top, ], factors = spe$BayesSpace, assay.type = "logcounts")
+means <- t(t(assay(pbs, "sums")) / pbs$counts)
+
 # use gene symbols as feature names
-mtx <- t(assay(pbs))
+mtx <- t(means)
 colnames(mtx) <- rowData(pbs)$gene_name
 # using pheatmap package
 pheatmap(mat = mtx, scale = "column")
