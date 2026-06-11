@@ -1,7 +1,3 @@
-```{r}
-#| eval: true
-knitr::opts_chunk$set(eval=FALSE)
-```
 # Deconvolution {#sec-seq-deconvolution}
 
 {{< include _start.qmd >}}
