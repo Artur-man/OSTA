@@ -164,11 +164,11 @@ This is even clearer when looking at the expression of EPCAM stratified by cell 
 
 ## Appendix
 
-::: {.callout-tip icon="false", title="Further reading"}
+::: {.callout-tip icon="false" title="Further reading"}
 
 - @Atta2024-gene-count and @Bhuva2024-library-size highlight normalization as 
-a key challenge in ST, that library size–based methods can distort biological 
-signal and downstream analyses, motivating alternative normalization strategies. 
+a key challenge in ST: library size–based methods can distort biological signal 
+and downstream analyses, motivating alternative normalization strategies. 
     
 - @Vallejos2017-normalization highlight why assumptions underlying standard 
 bulk RNA-seq normalization methods (e.g., consistent expression distributions, 
