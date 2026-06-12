@@ -2,7 +2,7 @@
 
 OSTA is an open, community-driven resource that is designed to evolve alongside new methods, technologies, and best practices. Contributions are welcome from readers, users, and method developers, including feedback on clarity, suggestions for improvements, and extensions to existing content or workflows.
 
-### 🌟 Reasons to contribute {-}
+### 🌟 Why to contribute {-}
 
 There are several motivations for contributing:
     
@@ -13,11 +13,11 @@ There are several motivations for contributing:
 - Ensuring new methods and technologies are represented in community standards
 - Supporting reproducible and transparent computational research practices
 
-### 📌 What you can contribute {-}
+### 📌 Ways to contribute {-}
 
 You can contribute in many ways:
 
-- Reporting typographical errors, issues, or unclear sections
+- Reporting typographical errors, issues,N or unclear sections
 - Improving explanations of methods or workflows
 - Adding new example analyses or methodological extensions
 - Extending platform or technology coverage
@@ -25,7 +25,7 @@ You can contribute in many ways:
 - Adding relevant literature, benchmarks, or external resources  
 (e.g., in "Further reading" or within chapter content)
 
-### ⚙️ Contribution workflow {-}
+### ⚙️ How to contribute {-}
 
 All contributions follow a GitHub-based workflow:
 
@@ -34,6 +34,14 @@ All contributions follow a GitHub-based workflow:
 3. Implement changes in a reproducible manner
 4. Ensure the book renders successfully using Quarto
 5. Submit a pull request to the `sandbox` branch
+  
+### 🔍 Review process {-}
+
+Contributions are evaluated for:
+
+- Scientific correctness and long-term maintainability
+- Consistency with OSTA structure and clarity of exposition
+- Computational reproducibility and successful build/check status
 
 ### 🔬 Reproducibility standards {-}
 
@@ -45,15 +53,6 @@ All contributions must:
 - Include session information (see existing chapters for formatting)
 - Be compatible with the target Bioconductor version, depending on the branch
 - Follow Bioconductor standards for package development (see [guidelines](https://contributions.bioconductor.org/bioconductor-package-submissions.html)) 
-  
-
-### 🔍 Review process {-}
-
-Contributions are evaluated for:
-
-- Scientific correctness and long-term maintainability
-- Consistency with OSTA structure and clarity of exposition
-- Computational reproducibility and successful build/check status
 
 ### ⚖️ Community expectations {-}
 
