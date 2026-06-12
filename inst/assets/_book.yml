@@ -88,7 +88,7 @@ book:
           file: pages/crs-registration.qmd
         - text: "⚙️ Imputation"
           file: pages/crs-imputation.qmd
-        - text: "🧩 Workflow: XenVis"
+        - text: "🧩 Workflow: Xenium × Visium"
           file: pages/crs-workflow-xenvis.qmd
   appendices:
     - pages/apx-acknowledgments.qmd
