@@ -2,7 +2,15 @@
 
 OSTA is an open, community-driven resource that is designed to evolve alongside new methods, technologies, and best practices. Contributions are welcome from readers, users, and method developers, including feedback on clarity, suggestions for improvements, and extensions to existing content or workflows.
 
-## 📌 What you can contribute {-}
+#### 🌟 Reasons to contribute {-}
+
+Contributions come with several benefits:
+    
+- Being publicly acknowledged within a trusted scientific ecosystem
+- Helping shape best practices in spatial (transcript)omics data analysis
+- Increasing the visibility and impact of your work through a widely used resource
+
+#### 📌 What you can contribute {-}
 
 You can contribute in several ways:
 
@@ -14,7 +22,7 @@ You can contribute in several ways:
 - Adding relevant literature, benchmarks, or external resources  
 (e.g., in "Further reading" or within chapter content)
 
-## ⚙️ Contribution workflow {-}
+#### ⚙️ Contribution workflow {-}
 
 All contributions follow a GitHub-based workflow:
 
@@ -24,7 +32,7 @@ All contributions follow a GitHub-based workflow:
 4. Ensure the book renders successfully using Quarto
 5. Submit a pull request to the `sandbox` branch
 
-## 🔬 Reproducibility standards {-}
+#### 🔬 Reproducibility standards {-}
 
 All contributions must:
 
@@ -36,7 +44,7 @@ All contributions must:
 - Follow Bioconductor standards for package development (see [guidelines](https://contributions.bioconductor.org/bioconductor-package-submissions.html)) 
   
 
-## 🔍 Review process {-}
+#### 🔍 Review process {-}
 
 Contributions are evaluated for:
 
@@ -44,7 +52,7 @@ Contributions are evaluated for:
 - Consistency with OSTA structure and clarity of exposition
 - Computational reproducibility and successful build/check status
 
-## ⚖️ Community expectations {-}
+#### ⚖️ Community expectations {-}
 
 Contributors are expected to:
 
@@ -52,4 +60,4 @@ Contributors are expected to:
 - Keep issues focused and actionable
 - Follow the [Bioconductor Code of Conduct](https://www.bioconductor.org/about/code-of-conduct)  
 
-⭐ Accepted contributions will be recognized in the book’s Acknowledgments section.
+🙏 Accepted contributions will be recognized in the book’s Acknowledgments section.
