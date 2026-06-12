@@ -1,6 +1,6 @@
 # Contributing
 
-OSTA is an open, community-driven resource. Contributions are welcome from readers, users, and method developers.
+OSTA is an open, community-driven resource that is designed to evolve alongside new methods, technologies, and best practices. Contributions are welcome from readers, users, and method developers, including feedback on clarity, suggestions for improvements, and extensions to existing content or workflows.
 
 ## 📌 What you can contribute {-}
 
@@ -29,8 +29,9 @@ All contributions follow a GitHub-based workflow:
 All contributions must:
 
 - Run end-to-end without warnings or errors
+- Use Bioconductor-compatible dependencies  
+(e.g., no `Remotes:` field in the DESCRIPTION)
 - Include session information (see existing chapters for formatting)
-- Use Bioconductor-compatible dependencies (e.g., avoid `Remotes:` in DESCRIPTION)
 - Be compatible with the target Bioconductor version, depending on the branch
 - Follow Bioconductor standards for package development (see [guidelines](https://contributions.bioconductor.org/bioconductor-package-submissions.html)) 
   
@@ -49,7 +50,6 @@ Contributors are expected to:
 
 - Be respectful in all interactions
 - Keep issues focused and actionable
-- Avoid unrelated or overly broad changes in a single pull request
 - Follow the [Bioconductor Code of Conduct](https://www.bioconductor.org/about/code-of-conduct)  
 
 ⭐ Accepted contributions will be recognized in the book’s Acknowledgments section.
