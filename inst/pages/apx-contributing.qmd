@@ -4,7 +4,7 @@ OSTA is an open, community-driven resource that is designed to evolve alongside 
 
 #### 🌟 Reasons to contribute {-}
 
-Contributions come with several benefits:
+There are several motivations for contributing:
     
 - Being publicly acknowledged within a trusted scientific ecosystem
 - Helping shape best practices in spatial (transcript)omics data analysis
