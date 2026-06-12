@@ -13,7 +13,7 @@ You can contribute in several ways:
 - Extending platform or technology coverage
 - Improving reproducibility, performance, or overall clarity
 - Adding relevant literature, benchmarks, or external resources  
-(e.g., in “Further reading” or within chapter content)
+(e.g., in "Further reading" or within chapter content)
 
 ## ⚙️ Contribution workflow {-}
 
