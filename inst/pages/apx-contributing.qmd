@@ -1,7 +1,6 @@
 # Contributing
 
-OSTA is an open, community-driven resource for spatial transcriptomics analysis. 
-Contributions are welcome from users, developers, and method developers.
+OSTA is an open, community-driven resource. Contributions are welcome from readers, users, and method developers.
 
 ## 📌 What you can contribute {-}
 
