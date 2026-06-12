@@ -44,6 +44,33 @@ Formalin fixation stabilizes the tissue and preserves morphology for years, but 
 also induces cross-linking and fragments the RNA. This fragmentation necessitates 
 specialized capture methods, such as probe-based capture, to ensure sensitivity.
 
+::: {.callout-note collapse="true" title="Archival stability of macromolecules in FFPE"}
+
+While FFPE blocks are often perceived as "deteriorating" over time, biological
+macromolecules remain remarkably stable for decades if stored at room temperature. 
+However, their stability profiles differ:
+
+- **DNA** is the most resilient, and remains stable for sequencing in blocks 
+stored for **over 40-50 years** with minimal quality impact [@Kokkat2013-FFPE], 
+making archival cohorts a robust resource for retrospective genomic studies.
+
+- **RNA** is more sensitive than RNA, yet still highly durable. 
+High-quality whole-transcriptome data has be recovered from FFPE blocks 
+stored for **up to 20-30 years**, with approximately 60% of samples yielding 
+usable libraries [@Hedegaard2014-FFPE]. Beyond this window, RNA-seq success 
+rates drop as fragmentation and chemical modifications become prohibitive.
+
+- **Protein:** Proteins are highly stable within the paraffin matrix of an intact 
+block for **at least a decade**. However, *antigenicity* (the ability of antibodies 
+to bind) is the most sensitive to environmental exposure once the block is cut.
+
+A critical distinction exists between **blocks** and **cut slides**: 
+while blocks are stable for years, once sections are cut and placed on slides, macromolecules—especially RNA and protein antigenicity—can degrade within weeks 
+due to surface oxidation. For spatial omics, immediate use or vacuum-sealing of 
+cut slides is essential to preserve signal intensity.
+
+:::
+
 ## FFPE considerations
 
 FFPE is currently the dominant clinical sample type. 
@@ -115,7 +142,7 @@ Tissue Microarrays (TMAs) have become the primary vehicle
 for scaling ST to large clinical cohorts [@Kononen1998-TMA].
 
 - **Throughput:** TMAs allow simultaneous processing of dozens of patient cores 
-(usually 0.6 mm to 2.0 mm in diameter) on a single slide, offering a means to 
+(usually 0.6 mm to 3 mm in diameter) on a single slide, offering a means to 
 increase sample size while reducing intra-slide technical variability.
 
 - **Sampling bias:** The primary risk of TMAs is sampling bias, where 
