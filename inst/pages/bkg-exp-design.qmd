@@ -1,0 +1,145 @@
+# Experimental design {#sec-experimental-design}
+
+{{< include _start.qmd >}}
+
+## Introduction
+
+Proper experimental design is the cornerstone of any spatial omics study. 
+Unlike bulk or single-cell RNA-seq, spatial omics adds a physical dimension 
+that introduces unique challenges, from sampling bias to tissue-specific artifacts. 
+
+This chapter covers the fundamental principles of design, the lifecycle of a 
+sample from biopsy to measurement, and strategies for optimizing panel selection 
+and regions of interest (ROI).
+
+## Sample lifecycle \& artifacts
+
+The journey from a biological specimen to a digital data point 
+involves several critical steps, each prone to specific artifacts.
+
+### Biopsy to fixation
+
+The method of tissue collection (e.g., core needle biopsy, surgical resection) 
+can induce stress responses or mechanical damage. 
+Rapid stabilization is essential to truly preserve spatial-molecular profiles.
+
+*   **Hypoxia and stress:** Delays in fixation can lead to hypoxic 
+stress signatures that alter molecular profiles within minutes.
+
+*   **Mechanical damage:** Physical handling can lead to "crush artifacts." 
+During sectioning, tissue folds or tears can create "hot spots" of 
+aggregated transcripts, or "cold spots" where tissue is lost.
+
+## Fixation modalities: FF vs. FFPE
+
+The choice between fixation modalities is often dictated by clinical 
+availability and the required resolution of downstream morphology.
+
+- **Fresh Frozen (FF):** Generally offers higher RNA integrity and is compatible 
+with a wider range of discovery-based assays. However, it requires strict cold 
+chain management and often yields poorer morphological detail compared to FFPE.
+
+- **Formalin-Fixed Paraffin-Embedded (FFPE)** is standard for clinical pathology. 
+Formalin fixation stabilizes the tissue and preserves morphology for years, but it 
+also induces cross-linking and fragments the RNA. This fragmentation necessitates 
+specialized capture methods, such as probe-based capture, to ensure sensitivity.
+
+## FFPE considerations
+
+FFPE is currently the dominant clinical sample type. 
+Due to its unique properties, specific quality control and chemistry 
+considerations are required [@Lundberg2019-proteomics; @Semba2024-multiplexed].
+
+### Quality Control: RIN vs. DV200
+
+The traditional **RNA Integrity Number (RIN)** metric used to scores RNA quality 
+on a scale from 1 (completely degraded) to 10 (fully intact) by analyzing the 
+ratio of ribosomal RNA subunits via electrophoretic traces [@Schroeder2006-RIN]. 
+However, because RNA is extensively fragmented in FFPE tissue,
+RIN is often less informative for clinical samples.
+
+Consequently, metrics such as **DV200 Index** [@Matsubara2020-DV200] (percentage
+of RNA fragments >200 nucleotides) are widely used indicators of RNA quality and 
+are often better predictors of library success in FFPE workflows.
+
+While these RNA integrity metrics are essential for sequencing-based ST, their 
+relevance is reduced in imaging-based platforms that rely on targeted probe 
+hybridization, as detection depends primarily on short hybridization regions 
+rather than full-length transcript integrity [@Ke2013; @Chen2015].
+
+### Capture Chemistry: Probe-based vs. poly-dT
+
+The degree of RNA fragmentation in FFPE samples makes traditional poly-dT capture (which targets the 3' tail) less effective. To overcome this, many spatial platforms (e.g., 10x Visium for FFPE) use **probe-based chemistry** [@Semba2024-multiplexed]. This involves hybridization of pairs of probes to specific mRNA sequences, providing significantly higher sensitivity in fragmented clinical samples.
+
+## Statistical Design and Power Analysis
+
+### Replication and Batch Effects
+
+*   **Biological Replicates:** Essential for generalizing findings across individuals or disease states.
+*   **Batch Effects:** Spatial runs are often processed in small batches. Randomization of samples across slides and batches is critical to avoid confounding biological signal with technical variation [@Lundberg2019-proteomics].
+
+### Spatial Power Analysis
+
+Traditional power analysis estimates the sample size needed to detect a change in mean expression. In spatial omics, we must also consider the **spatial arrangement** of cells and features. **Spatial Power Analysis** [@Imkeller2023] provides a framework to determine the optimal sampling strategy:
+
+1.  **Tissue Composition:** How many cells of a specific type are needed to detect a rare interaction?
+2.  **Field of View (FOV) Selection:** What size and number of FOVs are required to capture spatial heterogeneity?
+3.  **In Silico Tissue (IST):** Researchers can use IST models to simulate tissue structures and optimize their design before performing the actual experiment [@Imkeller2023].
+
+## Panel and ROI Design
+
+### Panel Design for Targeted Platforms
+
+For imaging-based platforms (e.g., Xenium, CosMx, MERFISH), selecting the right gene panel is a critical experimental step [@Baran2023-marker; @Kuemmerle2024-probe-set].
+
+*   **Exploratory vs. Hypothesis-driven:** Panels should include "anchor" markers for common cell types and "exploratory" targets.
+*   **Density and Crosstalk:** Higher plexity can increase background noise and optical crosstalk [@Kuemmerle2024-probe-set].
+
+### Region of Interest (ROI) Selection for Microdissection
+
+Technologies like **NanoString GeoMx Digital Spatial Profiler (DSP)** rely on the user to select specific Regions of Interest (ROIs) for molecular profiling. Unlike whole-tissue imaging, these platforms use microdissection (e.g., via UV-cleavable barcodes) to collect data from targeted areas [@Beechem2020]. Selection strategies include:
+
+- **Segmenting:** Defining Areas of Interest (AOIs) within an ROI based on 
+morphology markers. For example, using Pan-Cytokeratin (PanCK) to separate 
+the "tumor" from the "stroma" [@Beechem2020; @Merritt2020].
+
+- **Gridding:** Placing geometric shapes at regular intervals for unbiased sampling across a large area.
+
+- **Contouring:** Drawing concentric bands around a landmark (e.g., a tertiary 
+lymphoid structures, blood vessel, or tumor interface) to analyze cellular
+patterns and gene expression as a function of distance [@Beechem2020].
+
+### Tissue Microarrays (TMAs)
+
+Tissue Microarrays (TMAs) have become the primary vehicle 
+for scaling ST to large clinical cohorts [@Kononen1998-TMA].
+
+- **Throughput:** TMAs allow simultaneous processing of dozens of patient cores 
+(usually 0.6 mm to 2.0 mm in diameter) on a single slide, offering a means to 
+increase sample size while reducing intra-slide technical variability.
+
+- **Sampling bias:** The primary risk of TMAs is sampling bias, where 
+a small core may not capture the full heterogeneity of the donor tissue.
+
+- **Control core(s):** It is common practice to include control tissues (such as
+a well-characterized reference, or cell line pellets) to support QC of staining 
+or hybridization assays (e.g., IHC/ISH), to enable normalization across slides 
+and batches, or to serve as (physical) orientation guides.
+
+::: {#fig-tma fig-align="center"}
+![](../images/bkg-exp-design-tma.png){width=50%}
+*[source: https://geneticistusa.com/]*
+:::
+
+## Appendix
+
+::: {.callout-tip icon="false" title="Further reading"}
+
+- @Taqi2018 provide a comprehensive review of **artifacts in histopathology**,  
+including (pre)fixation, tissue-processing, staining artifacts, and more.
+
+:::
+
+### References {.unnumbered}
+
+{{< include _stop.qmd >}}

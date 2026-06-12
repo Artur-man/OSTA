@@ -8,6 +8,8 @@ book:
           file: pages/bkg-introduction.qmd
         - text: "📖 Spatial omics"
           file: pages/bkg-spatial-omics.qmd
+        - text: "📖 Experimental design"
+          file: pages/bkg-exp-design.qmd
         - text: "📖 Infrastructure"
           file: pages/bkg-infrastructure.qmd
         - text: "📖 Ecosystem"
