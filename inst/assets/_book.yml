@@ -91,6 +91,7 @@ book:
         - text: "🧩 Workflow: Xenium × Visium"
           file: pages/crs-workflow-xenvis.qmd
   appendices:
+    - pages/apx-contributing.qmd
     - pages/apx-acknowledgments.qmd
     - pages/apx-related-resources.qmd
     - pages/apx-session-info.qmd

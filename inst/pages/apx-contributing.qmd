@@ -1,0 +1,52 @@
+# Contributing
+
+OSTA is an open, community-driven resource for spatial transcriptomics analysis. 
+Contributions are welcome from users, developers, and method developers.
+
+## 🧭 What you can contribute {-}
+
+You can contribute in several ways:
+
+- Reporting typographical errors, issues, or unclear sections
+- Suggesting improvements to existing content
+- Adding new example analyses or methods
+- Extending platform or technology coverage
+- Improving reproducibility, performance, or clarity
+
+## ⚙️ Contribution workflow {-}
+
+All contributions follow a GitHub-based workflow:
+
+1. Open an issue describing the problem or proposal
+2. Fork the repository and create a feature branch
+3. Implement changes in a reproducible manner
+4. Ensure the book renders successfully using Quarto
+5. Submit a pull request to the `sandbox` branch
+
+## 🧪 Reproducibility standards {-}
+
+All contributions must:
+
+- Run end-to-end without warnings or errors
+- Include session information (see existing chapters for formatting)
+- Use stable Bioconductor-compatible dependencies (e.g., avoid `Remotes:` in DESCRIPTION)
+- Be compatible with the target Bioconductor release or development version, depending on the branch
+- Follow Bioconductor standards for package development, maintenance, and peer review (see [guidelines](https://contributions.bioconductor.org/bioconductor-package-submissions.html)) 
+  
+
+## 🔁 Review process {-}
+
+Contributions are evaluated for:
+
+- Scientific correctness and long-term maintainability
+- Consistency with OSTA structure and clarity of exposition
+- Computational reproducibility and successful build/check status
+
+## 🤝 Community expectations {-}
+
+We aim to maintain a collaborative and inclusive environment. Contributors are expected to:
+
+- Be respectful in all interactions
+- Keep issues focused and actionable
+- Avoid unrelated or overly broad changes in a single pull request
+- Follow the [Bioconductor Code of Conduct](https://www.bioconductor.org/about/code-of-conduct)  
