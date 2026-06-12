@@ -9,10 +9,13 @@ There are several motivations for contributing:
 - Being publicly acknowledged within a trusted scientific ecosystem
 - Helping shape best practices in spatial (transcript)omics data analysis
 - Increasing the visibility and impact of your work through a widely used resource
+- Improving clarity and usability of a widely used educational resource
+- Ensuring new methods and technologies are represented in community standards
+- Supporting reproducible and transparent computational research practices
 
 #### 📌 What you can contribute {-}
 
-You can contribute in several ways:
+You can contribute in many ways:
 
 - Reporting typographical errors, issues, or unclear sections
 - Improving explanations of methods or workflows
