@@ -367,6 +367,8 @@ benchmark, or other, references and resources mentioned throughout the book.
 | `r Biocpkg("scater")` | @McCarthy2017-scater |
 | `r Biocpkg("SpaNorm")` | @Salim2025-SpaNorm |
 | theory | @Bhuva2024-library-size; @Atta2024-gene-count |
+| bulk vs. scRNA-seq | @Vallejos2017-normalization |
+| scRNA-seq benchmark | @AhlmannEltze2023-normalization |
 
 : {.striped tbl-colwidths="[33,66]"}
 
