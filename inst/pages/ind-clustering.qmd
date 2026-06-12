@@ -1,3 +1,7 @@
+```{r}
+knitr::opts_chunk$set(eval=FALSE)
+```
+
 # Clustering {#sec-ind-clustering}
 
 {{< include _start.qmd >}}
@@ -290,19 +294,31 @@ pbs <- aggregateAcrossCells(spe,
 pheatmap(mat=t(assay(pbs)), scale="column", breaks=seq(-2, 2, length=101))
 ```
 
-
 ## Appendix
 
-### Reviews {.unnumbered}
+::: {.callout-tip icon="false" title="Further reading"}
 
-* @Wang2024-review-spatial-domain categorize ST clustering approaches into probability statistics-, graph neural network- and contrastive learning-based approaches, and review their advantages and limitations for clustering of data from seq- and img-based assays.
+- The [single-cell best practices](https://www.sc-best-practices.org/spatial/domains) chapter on spatial domains divides methods into two broad categories: (i) methods that identify spatial domains using gene expression together with spatial coordinates, and (ii) methods that additionally incorporate features extracted from histological images.
 
+- The [OSCA](https://bioconductor.org/books/release/OSCA.basic/clustering.html) chapter     on clustering provides an overview of graph-based, hierarchical, and centroid-based clustering methods for scRNA-seq data. Together with the preceding chapter on dimensionality reduction, these concepts underpin many spatial clustering approaches.
 
-### Benchmarks {.unnumbered}
+- @Wang2024-review-spatial-domain categorize ST clustering approaches into probability statistics-, graph neural network- and contrastive learning-based approaches, and review their advantages and limitations for clustering of data from seq- and img-based assays.
+  
+- **Benchmarks**
 
-* @Hu2024-benchmark-clustering compare 16 graph- and statistic-based approaches, including `BayesSpace` and `BANKSY`, across 10 (mostly seq-based) datasets.
-* @Liu2024-network-clustering compare eight GNN-based approaches, including `SpaceFlow`, across four seq- and one img-based dataset.
+  - @Chen2025-benchmark-clustering compare 14 methods across ~600 datasets from 10 technologies.
+  
+  - @Sun2025-benchmark-clustering compare 22 methods across 15 datasets spanning 9 technologies and diverse tissue types.
 
+  - @Xiong2025-benchmark-clustering compare 10 methods across 2 simulated and 3 real multi-slide datasets.
+
+  - @Hu2024-benchmark-clustering compare 16 graph- and statistic-based approaches, including `BayesSpace` and `BANKSY`, across 10 (mostly seq-based) datasets.
+
+  - @Liu2024-network-clustering compare 8 GNN-based approaches, including `SpaceFlow`, across 4 seq- and one img-based dataset.
+
+  - @Cheng2022-benchmark-clustering compare 15 methods (from 7 frameworks) across 7 datasets (5 seq- and 2 img-based). 
+ 
+:::
 
 ### References {.unnumbered}
 

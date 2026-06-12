@@ -366,10 +366,9 @@ Alternatively, we can use other R/Python frameworks to integrate imaging-based S
 chapter provides a Python-focused complement, demonstrating how scRNA-seq can be 
 used to impute unmeasured genes in FISH-based ST data using Tangram [@Biancalani2021-Tangram].
 
-- This [OSCA](https://bioconductor.org/books/release/OSCA.multisample/) book part 
-on multi-sample single-cell analyses covers a variety of batch effect correction 
-methods, quantitative diagnostics, downstream differential expression (DE) and 
-abundance (DA) analysis, as well as different case studies (mouse and human).
+- This [OSCA](https://bioconductor.org/books/release/OSCA.multisample/)
+book part on multi-sample single-cell analyses covers a variety 
+of batch effect correction methods and quantitative diagnostics.
  
 :::
 
