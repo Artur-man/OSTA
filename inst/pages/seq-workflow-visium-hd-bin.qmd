@@ -10,19 +10,15 @@ Visium HD is a next-generation spatial transcriptomics technology developed by 1
 
 ```{r deps, message=FALSE, warning=FALSE}
 library(Banksy)
-library(BiocParallel)
 library(dplyr)
 library(DropletUtils)
 library(ggplot2)
 library(ggspavis)
-library(igraph)
 library(magick)
 library(OSTA.data)
 library(patchwork)
 library(pheatmap)
-library(scater)
-library(scran)
-library(scuttle)
+library(scrapper)
 library(sf)
 library(spacexr)
 library(SpatialExperiment)
@@ -210,20 +206,20 @@ From now on, we are operating on `r ncol(.vhd16)` 16 µm bins.
 As detailed in @sec-seq-quality-control, we use `r BiocStyle::Biocpkg("SpotSweeper")` to perform quality control on the subsetted 16 µm data.
 
 ```{r qc-vhd16-local}
-# calculate per-cell QC metrics
+# calculate per-bin QC metrics
 mt <- grepl("^MT-", rownames(.vhd16))
-.vhd16 <- addPerCellQCMetrics(.vhd16, subsets=list(mt=mt))
+.vhd16 <- quickRnaQc.se(.vhd16, subsets=list(mt=mt))
 # determine outliers based on 
 # - low log-library size
 # - few uniquely detected features
-# - high mitochondrial count fraction
+# - high mitochondrial count proportion
 .vhd16 <- localOutliers(.vhd16, metric="sum", direction="lower", log=TRUE)
 .vhd16 <- localOutliers(.vhd16, metric="detected", direction="lower", log=TRUE)
-.vhd16 <- localOutliers(.vhd16, metric="subsets_mt_percent", direction="higher", log=TRUE)
+.vhd16 <- localOutliers(.vhd16, metric="subset.proportion.mt", direction="higher", log=FALSE)
 .vhd16$discard <- 
     .vhd16$sum_outliers | 
     .vhd16$detected_outliers | 
-    .vhd16$subsets_mt_percent_outliers
+    .vhd16$subset.proportion.mt_outliers
 # tabulate number of bins retained 
 # vs. removed by any criterion 
 table(.vhd16$discard)
@@ -233,8 +229,8 @@ table(.vhd16$discard)
 #| code-fold: true
 plotCoords(.vhd16, annotate="sum_log", point_size=0.2, point_shape=15) + 
   ggtitle("log-library size") +
-  plotCoords(.vhd16, annotate="subsets_mt_percent", point_size=0.2, point_shape=15) + 
-  ggtitle("% mitochondrial") +
+  plotCoords(.vhd16, annotate="subset.proportion.mt", point_size=0.2, point_shape=15) +
+  ggtitle("mitochondrial proportion") +
   plot_layout(nrow=1) & theme(
     legend.key.width=unit(0.5, "lines"),
     legend.key.height=unit(1, "lines")) &
@@ -268,9 +264,11 @@ dim(.vhd16)
 First, we identify highly variable genes (HVGs) in the target area: [Note that spatially variable genes (SVGs) could be used instead; see @sec-seq-intermediate-processing.]{.aside}
 
 ```{r vhd16-hvg}
-.vhd16 <- logNormCounts(.vhd16)
-dec <- modelGeneVar(.vhd16)
-hvg <- getTopHVGs(dec, n=3e3)
+.vhd16 <- normalizeRnaCounts.se(.vhd16)
+.vhd16 <- chooseRnaHvgs.se(
+    .vhd16, top=3e3,
+    more.var.args=list(use.min.width=TRUE))
+hvg <- rownames(.vhd16)[rowData(.vhd16)$hvg]
 ```
 
 As detailed in @sec-ind-clustering, `r BiocStyle::Biocpkg("Banksy")` [@Singhal2024-BANKSY] utilizes a pair of spatial kernels to capture gene expression variation, followed by dimension reduction and graph-based clustering to identify spatial domains.
@@ -291,26 +289,30 @@ tmp <- computeBanksy(tmp, assay_name=a, coord_names=xy, k_geom=k)
 tmp <- runBanksyPCA(tmp, lambda=l, npcs=20)
 reducedDim(.vhd16, "PCA") <- reducedDim(tmp)
 ## run UMAP (for visualization purposes only)
-# .vhd16 <- runUMAP(.vhd16, dimred="PCA")
+# .vhd16 <- runUmap.se(.vhd16, reddim.type="PCA")
 # build cellular shared nearest-neighbor (SNN) graph
-g <- buildSNNGraph(.vhd16, use.dimred="PCA", type="jaccard", k=20)
-# cluster using Leiden community detection algorithm
-k <- cluster_leiden(g, objective_function="modularity", resolution=1.2)
-table(.vhd16$Banksy <- factor(k$membership))
+# and cluster using Leiden community detection algorithm
+.vhd16 <- clusterGraph.se(
+    .vhd16, num.neighbors=20,
+    method="leiden", resolution=1.2,
+    more.build.args=list(weight.scheme="jaccard"),
+    more.cluster.args=list(leiden.objective="modularity", seed=112358),
+    reddim.type="PCA", output.name="Banksy")
+table(.vhd16$Banksy)
 ```
 
-Next, we can perform differential gene expresison (DGE) analysis to identify markers for each cluster; c.f. @sec-ind-feature-set-signatures. We also compute the cluster-wise mean expression of selected markers:
+Next, we can score marker genes for each cluster; c.f. @sec-ind-feature-set-signatures. We also compute the cluster-wise mean expression of selected markers:
 
 ```{r mgs}
-# differential gene expression analysis
-mgs <- findMarkers(.vhd16, groups=.vhd16$Banksy, direction="up")
+# marker gene scoring
+mgs <- scoreMarkers.se(.vhd16, groups=.vhd16$Banksy)
 # select for a few markers per cluster
-top <- lapply(mgs, \(df) rownames(df)[df$Top <= 2])
+top <- lapply(mgs, \(df) rownames(df)[df$cohens.d.min.rank <= 2])
 top <- unique(unlist(top))
 # average expression by clusters
-pbs <- aggregateAcrossCells(.vhd16, 
-    ids=.vhd16$Banksy, subset.row=top, 
-    use.assay.type="logcounts", statistics="mean")
+pbs <- aggregateAcrossCells.se(
+    .vhd16[top, ], factors=.vhd16$Banksy, assay.type="logcounts")
+means <- t(t(assay(pbs, "sums")) / pbs$counts)
 ```
 
 The marker genes in each cluster can be visualized with a heatmap:
@@ -319,7 +321,7 @@ The marker genes in each cluster can be visualized with a heatmap:
 #| code-fold: true
 # visualize averages z-scaled across clusters
 pheatmap(
-    mat=t(assay(pbs)), scale="column", breaks=seq(-2, 2, length=101), 
+    mat=t(means), scale="column", breaks=seq(-2, 2, length=101),
     cellwidth=10, cellheight=10, treeheight_row=5, treeheight_col=5)
 ```
 

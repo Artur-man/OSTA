@@ -24,17 +24,15 @@ Once we have identified spatial domains, these can then be further investigated 
 ### Dependencies
 
 ```{r deps, message=FALSE, warning=FALSE}
-library(scran)
-library(scater)
-library(igraph)
 library(Banksy)
-library(ggspavis)
-library(pheatmap)
-library(basilisk)
-library(patchwork)
-library(OSTA.data)
 library(BayesSpace)
+library(basilisk)
+library(ggspavis)
+library(OSTA.data)
+library(patchwork)
+library(pheatmap)
 library(reticulate)
+library(scrapper)
 library(SpatialExperiment)
 # set seed for random number generation
 # in order to make results reproducible
@@ -52,11 +50,16 @@ Specifically, we construct a shared nearest neighbor (SNN) graph based on non-sp
 [The `resolution` parameter used here was selected in order to obtain a similar number of clusters annotated by the authors.]
 
 ```{r clu-Leiden}
-# build cellular shared nearest-neighbor (SNN) graph
-g <- buildSNNGraph(spe, use.dimred="PCA_tx", type="jaccard", k=20)
+# build cellular shared nearest-neighbor (SNN) graph;
 # cluster using Leiden community detection algorithm
-k <- cluster_leiden(g, objective_function="modularity", resolution=1.2)
-table(spe$Leiden <- factor(k$membership))
+spe <- clusterGraph.se(spe,
+    reddim.type="PCA_tx", 
+    output.name="Leiden",
+    method="leiden", 
+    resolution=1.2, 
+    num.neighbors=20,
+    more.build.args=list(weight.scheme="jaccard"))
+table(spe$Leiden)
 ```
 
 ### Spatially-aware
@@ -74,9 +77,11 @@ Underlying `r BiocStyle::Biocpkg("BayesSpace")` [@Zhao2021-BayesSpace] is a Baye
 ```{r BayesSpace, message=FALSE}
 # load processed Visium dataset
 vis <- readRDS("seq-spe_cl.rds")
+
 # prepare data for 'BayesSpace'
 # skipping PCA (already computed)
 .vis <- spatialPreprocess(vis, skip.PCA=TRUE)
+
 # perform spatial clustering with 'BayesSpace'
 # using 'd=20' PCs and targeting 'q=10' clusters
 .vis <- spatialCluster(.vis, q=10, d=20, nrep=1e3, burn.in=100) 
@@ -91,10 +96,15 @@ We have already computed `Banksy` PCs in @sec-ind-dimensionality-reduction (`red
 
 ```{r clu-Banksy, message=FALSE}
 # perform SNN graph-based clustering on 'Banksy' PCs using
-# same parameters as for 'non-spatial' clustering above
-g <- buildSNNGraph(spe, use.dimred="PCA_sp", type="jaccard", k=20)
-k <- cluster_leiden(g, objective_function="modularity", resolution=0.8)
-table(spe$Banksy <- factor(k$membership))
+# similar parameters as for 'non-spatial' clustering above
+spe <- clusterGraph.se(spe,
+    reddim.type="PCA_sp", 
+    output.name="Banksy",
+    method="leiden", 
+    resolution=0.8, 
+    num.neighbors=20,
+    more.build.args=list(weight.scheme="jaccard"))
+table(spe$Banksy)
 ```
 
 #### Encoder-based
@@ -275,19 +285,20 @@ For details on identifying genes that are differentially expressed (DE) between 
 
 ```{r mgs}
 # differential gene expression analysis
-mgs <- findMarkers(spe, groups=spe$Leiden, direction="up")
+de <- scoreMarkers.se(spe, groups=spe$Leiden)
+
 # select for a few markers per cluster
-top <- lapply(mgs, \(df) rownames(df)[df$Top <= 3])
-length(top <- unique(unlist(top)))
+gs <- lapply(de, \(df) head(rownames(df), 7))
+length(gs <- unique(unlist(gs)))
 ```
 
 ```{r plt-mgs-hm, fig.width=10, fig.height=3.5}
 # average expression by clusters
-pbs <- aggregateAcrossCells(spe, 
-    ids=spe$Leiden, subset.row=top, 
-    use.assay.type="logcounts", statistics="mean")
+pbs <- aggregateAcrossCells.se(spe[gs, ], spe$Leiden, assay.type="logcounts")
+mtx <- sweep(assay(pbs, "sums"), 2, pbs$counts, `/`)
+
 # visualize averages z-scaled across clusters
-pheatmap(mat=t(assay(pbs)), scale="column", breaks=seq(-2, 2, length=101))
+pheatmap(mat=t(mtx), scale="column", breaks=seq(-2, 2, length=101))
 ```
 
 ## Appendix
@@ -296,7 +307,7 @@ pheatmap(mat=t(assay(pbs)), scale="column", breaks=seq(-2, 2, length=101))
 
 - The [single-cell best practices](https://www.sc-best-practices.org/spatial/domains) chapter on spatial domains divides methods into two broad categories: (i) methods that identify spatial domains using gene expression together with spatial coordinates, and (ii) methods that additionally incorporate features extracted from histological images.
 
-- The [OSCA](https://bioconductor.org/books/release/OSCA.basic/clustering.html) chapter     on clustering provides an overview of graph-based, hierarchical, and centroid-based clustering methods for scRNA-seq data. Together with the preceding chapter on dimensionality reduction, these concepts underpin many spatial clustering approaches.
+- The [OSCA](https://bioconductor.org/books/release/OSCA.basic/clustering.html) chapter on clustering provides an overview of graph-based, hierarchical, and centroid-based clustering methods for scRNA-seq data. Together with the preceding chapter on dimensionality reduction, these concepts underpin many spatial clustering approaches.
 
 - @Wang2024-review-spatial-domain categorize ST clustering approaches into probability statistics-, graph neural network- and contrastive learning-based approaches, and review their advantages and limitations for clustering of data from seq- and img-based assays.
   

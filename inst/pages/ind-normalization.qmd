@@ -19,10 +19,10 @@ Here, we will review both scaling normalization methods and spatially-aware norm
 ### Dependencies
 
 ```{r load-deps, message=FALSE, warning=FALSE}
-library(scater)
 library(ggplot2)
-library(patchwork)
 library(OSTA.data)
+library(patchwork)
+library(scrapper)
 library(SpatialExperiment)
 # load data from preceding 
 # chapter (post quality control)
@@ -44,12 +44,12 @@ spe$Label <- df$Annotation[cs]
 
 ## Scaling normalization
 
-As a baseline, we will apply log-library size normalization, as implemented in the `r BiocStyle::Biocpkg("scater")` package [@McCarthy2017-scater]. 
-Note that the `logNormCounts` function adds a new assay named `logcounts` to the `spe` object, which contains the normalized expression values on the log scale. 
+As a baseline, we will apply log-library size normalization, as implemented in the `r BiocStyle::Biocpkg("scrapper")` package. 
+Note that the `normalizeRnaCounts.se` function adds a new assay named `logcounts` to the `spe` object, which contains the normalized expression values on the log scale. 
 
 ```{r norm-log}
-spe$library_size <- librarySizeFactors(spe)
-spe <- logNormCounts(spe, size.factors=spe$library_size)
+spe <- normalizeRnaCounts.se(spe)
+spe$sf_lib <- sizeFactors(spe)
 assayNames(spe)
 ```
 
@@ -60,8 +60,10 @@ Nevertheless, it is important to highlight that cell area itself is not known a 
 To compute area-derived size factors, we can use the `cell_area` column in the `colData` of the `spe` object, which contains the area of each cell as estimated by the segmentation.
 
 ```{r norm-area}
-sizeFactors(spe) <- spe$cell_area / median(spe$cell_area)
-spe <- logNormCounts(spe, name="normalized_by_area")
+spe$sf_area <- (. <- spe$cell_area) / median(.)
+spe <- normalizeRnaCounts.se(spe, 
+    size.factors=spe$sf_area,
+    output.name="normalized_by_area")
 ```
 
 We can check the distribution of library and area-derived size factors across cell types, to highlight any potential confounding:
@@ -69,8 +71,8 @@ We can check the distribution of library and area-derived size factors across ce
 ```{r plot-size-factors-boxplot, fig.width=9, fig.height=5}
 #| code-fold: true
 df <- data.frame(colData(spe), spatialCoords(spe))
-p1 <- ggplot(df, aes(y=library_size)) + ggtitle("Library size factors") 
-p2 <- ggplot(df, aes(y=sizeFactor)) + ggtitle("Area-derived factors") 
+p1 <- ggplot(df, aes(y=sf_lib)) + ggtitle("Library size factors") 
+p2 <- ggplot(df, aes(y=sf_area)) + ggtitle("Area-derived factors") 
 (p1 + p2) &
     geom_boxplot(aes(Label, fill=Label)) &
     labs(x="Cell type", y="Size factor") &
@@ -87,9 +89,9 @@ We can clearly see that library size factors of tumor cells are systematically h
 
 We can also compare the area-derived scaling factors with the library size factors:
 
-```{r plot-size-factors-scatter, fig.width=6, fig.height=6}
+```{r plot-size-factors-scatter, fig.width=6, fig.height=5}
 #| code-fold: true
-ggplot(df, aes(sizeFactor, library_size)) + 
+ggplot(df, aes(sf_area, sf_lib)) + 
     geom_point(shape=16, stroke=0, size=0.4) +
     geom_abline(linewidth=0.4, col="blue") + 
     facet_wrap(~Label) +

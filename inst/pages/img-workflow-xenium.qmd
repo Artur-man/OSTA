@@ -6,7 +6,7 @@
 
 ### Introduction
 
-In this demo, we will analyze a 313-plex Xenium dataset on human breast cancer tissue
+In this demo, we will analyze a 313-plex Xenium dataset on human colorectal cancer tissue
 [@Janesick2023-high-res]. Following very basic quality control and preprocessing, we will 
 perform both (non-spatial) unsupervised clustering as well as fully supervised 
 label-transfer based on scRNA-seq reference data, and then compare the obtained 
@@ -15,23 +15,18 @@ cluster assignments to those provided by the authors.
 ### Dependencies {#sec-img-workflow-xenium-load-data}
 
 ```{r load-libs, message=FALSE, warning=FALSE}
-library(dplyr)
-library(tidyr)
-library(scran)
-library(igraph)
-library(scater)
-library(scuttle)
-library(SingleR)
-library(ggplot2)
-library(patchwork)
-library(OSTA.data)
-library(BayesSpace)
 library(BiocParallel)
 library(DropletUtils)
+library(ggplot2)
+library(OSTA.data)
+library(patchwork)
+library(scater)
+library(scrapper)
+library(SingleR)
 library(SpatialExperiment)
 library(SpatialExperimentIO)
 # set parallelization
-bp <- MulticoreParam(4)
+bp <- MulticoreParam(th <- 4)
 # set seed for random number generation
 # in order to make results reproducible
 set.seed(112358)
@@ -68,26 +63,21 @@ unzip(pa, exdir=td)
 ## Quality control
 
 ```{r qc}
-# compute cell-level QC metrics
-spe <- addPerCellQCMetrics(spe)
+# compute cell-level QC metrics &
 # identify low-quality cells by thresholding on
 # median absolute deviation (MAD) from the median
-ol <- perCellQCFilters(spe)
+spe <- quickRnaQc.se(spe, subsets=list())
 # tabulate # and % of cells discarded 
 # due to few counts/detected features
-data.frame(
-    check.names=FALSE,
-    `#`=apply(ol, 2, sum), 
-    `%`=round(100*apply(ol, 2, mean), 2))
+round(100*prop.table(table(keep=!spe$keep)), 2)
 ```
 
 Before proceeding to exclude any cells from downstream analyses, let's 
-first visualize the cells deemed to be of low quality in space alongside 
+first visualize the cells deemed to be of high quality in space alongside 
 the underlying quality control metrics (total counts and detected features):
 
 ```{r plt-ol, fig.width=12, fig.height=4}
 #| code-fold: true
-spe$ol <- ol$discard
 .plt_xy(spe, "sum") +  
     scale_color_viridis_c(
         "# counts", 
@@ -99,16 +89,16 @@ spe$ol <- ol$discard
         "# features", 
         breaks=range(spe$detected), 
         labels=c("low", "high")) +
-.plt_xy(spe[, order(spe$ol)], "ol") + 
+.plt_xy(spe[, order(!spe$keep)], "keep") + 
     scale_color_manual(
-        "low-quality",
+        "high-quality",
         labels=c("no", "yes"),
-        values=c("lavender", "purple"))
+        values=c("purple", "lavender"))
 ```
 
 ```{r fil}
 # discard low-quality cells
-ncol(spe <- spe[, !ol$discard])
+ncol(spe <- spe[, spe$keep])
 ```
 
 ## Processing
@@ -148,10 +138,10 @@ component analysis (PCA) on all `r nrow(spe)` RNA targets:
 
 ```{r pro}
 # cell area-based normalization
-sf <- (. <- sub$cell_area) / median(.)
-sub <- logNormCounts(sub, size.factors=sf)
+sfs <- (. <- sub$cell_area) / median(.)
+sub <- normalizeRnaCounts.se(sub, size.factors=sfs)
 # principal component analysis
-sub <- runPCA(sub)
+sub <- runPca.se(sub, features=rownames(sub))
 ```
 
 Let's visualize the expression of some genes in space; e.g., PIGR, IGHG3 and 
@@ -178,11 +168,13 @@ wrap_plots(ps, nrow=1) &
 
 ```{r Leiden}
 # shared nearest-neighbor (SNN) graph based on 
-# cell-to-cell Jaccard similarity in PC space
-g <- buildSNNGraph(sub, use.dimred="PCA", type="jaccard", BPPARAM=bp)
+# cell-to-cell Jaccard similarity in PC space;
 # community detection using Leiden algorithm
-k <- cluster_leiden(g, objective_function="modularity", resolution=0.7)
-table(sub$Leiden <- factor(. <- k$membership, labels=letters[seq_along(unique(.))]))
+sub <- clusterGraph.se(sub,
+    num.threads=th, resolution=0.5, 
+    method="leiden", output.name="Leiden",
+    more.build.args=list(weight.scheme="jaccard"))
+table(sub$Leiden)
 ```
 
 ### Supervised
@@ -202,6 +194,7 @@ id <- "Chromium_HumanColon_Oliveira"
 pa <- OSTA.data_load(id)
 dir.create(td <- tempfile())
 unzip(pa, exdir=td)
+
 # read into 'SingleCellExperiment'
 sce <- read10xCounts(list.files(td, "h5$", full.names=TRUE))
 cd <- read.csv(list.files(td, "cell_meta", full.names=TRUE))
@@ -224,7 +217,7 @@ sce <- sce[, grepl("P2", sce$Patient)]
 # realize count matrix
 assay(sce) <- as(assay(sce), "dgCMatrix")
 # log-library size normalization
-sce <- logNormCounts(sce)
+sce <- normalizeRnaCounts.se(sce)
 # restrict to Xenium targets
 sce <- sce[rowData(sce)$ID %in% rowData(sub)$ID, ]
 # set gene symbols as feature names
@@ -234,6 +227,7 @@ rownames(sce) <- rowData(sce)$Symbol
 res <- SingleR(
     test=sub, ref=sce, 
     labels=sce$Level2, 
+    de.method="wilcox",
     aggr.ref=TRUE, BPPARAM=bp)
 sub$Level2 <- factor(res$pruned.labels)
 ```
@@ -298,13 +292,18 @@ visualize selected markers as a heatmap of (z-scaled) average expression.
 It's comforting to see that we pick up on many classics, e.g., endothelia 
 are marked by VWF and PECAM1, T cells by CD2 and TRAC, etc.
 
-```{r mgs, fig.width=3.5, fig.height=7}
+```{r mgs, fig.width=3, fig.height=4}
 # test for differential expression between clusters
-mgs <- findMarkers(sub, groups=sub$Level1, direction="up")
+ok <- !is.na(sub$Level1)
+de <- scoreMarkers.se(sub[, ok], sub$Level1[ok])
+
 # select top-ranked genes for every cluster
-top <- unique(unlist(lapply(mgs, \(df) rownames(df)[df$Top <= 3])))
+gs <- lapply(de, \(df) head(rownames(df), 5))
+gs <- unique(unlist(gs))
+
+# visualize their average expression by cluster
 plotGroupedHeatmap(sub, 
-    features=top, group="Level1", 
+    features=gs, group="Level1", 
     scale=TRUE, center=TRUE, fontsize=6)
 ```
 

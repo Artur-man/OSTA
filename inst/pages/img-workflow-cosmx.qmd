@@ -6,7 +6,10 @@
 
 ### Introduction
 
-In this demo, we will analyze a 1k-plex CosMx data (Bruker) of a mouse brain sample; see @sec-bkg-example-datasets. Following quality control and preprocessing, we will perform cell type annotation, identification of marker genes, and cell-cell interaction analysis.
+In this demo, we will analyze 1k-plex CosMx data (Bruker) on mouse brain tissue; 
+see @sec-bkg-example-datasets. Following quality control and preprocessing, 
+we will perform cell type annotation, identification of marker genes, 
+and cell-cell interaction analysis.
 
 ### Dependencies {#sec-img-workflow-cosmx-load-data}
 
@@ -16,15 +19,14 @@ library(ggplot2)
 library(OSTA.data)
 library(patchwork)
 library(pheatmap)
-library(scater)
-library(scrapper)
 library(scRNAseq)
+library(scrapper)
 library(sf)
 library(SingleR)
 library(SpaceTrooper)
+library(spatialFDA)
 library(SpatialExperiment)
 library(SpatialExperimentIO)
-library(spatialFDA)
 library(SpatialFeatureExperiment)
 library(spdep)
 library(Voyager)
@@ -40,6 +42,7 @@ pa <- OSTA.data_load(id, mol=FALSE)
 dir.create(td <- tempfile())
 unzip(pa, exdir=td)
 cos <- readCosmxSXE(td, addTx=FALSE)
+
 # prepare data for 'SpaceTrooper'
 cos <- updateCosmxSPE(cos, td, sampleName="CosMx")
 cos <- readAndAddPolygonsToSPE(cos)
@@ -95,10 +98,10 @@ component analysis (PCA) on all `r nrow(cos)` RNA targets:
 
 ```{r pro}
 # cell area-based normalization
-sf <- (. <- sub$Area) / median(.)
-sub <- logNormCounts(sub, size.factors=sf)
+sfs <- (. <- sub$Area) / median(.)
+sub <- normalizeRnaCounts.se(sub, size.factors=sfs)
 # principal component analysis
-sub <- runPCA(sub)
+sub <- runPca.se(sub, features=rownames(sub))
 ```
 
 Let's visualize the expression of the first two principal components (PCs) in the spatial context.
@@ -106,7 +109,8 @@ Let's visualize the expression of the first two principal components (PCs) in th
 ```{r plt-gs-xy, fig.width=8, fig.height=3, message=FALSE}
 # add PCs as cell metadata
 pcs <- reducedDim(sub, "PCA")
-colData(sub) <- cbind(colData(sub), pcs)
+nms <- paste0("PC", seq(ncol(pcs)))
+colData(sub)[nms] <- pcs
 # visualize PCs 1 & 2 in space
 plotCentroids(sub, colourBy="PC1") +
 plotCentroids(sub, colourBy="PC2")
@@ -118,13 +122,16 @@ Here, we use the @zeisel2015cell dataset as a reference to annotate the cell typ
 
 ```{r load-ref-cosmx}
 sceZ <- ZeiselBrainData()
-sceZ <- logNormCounts(sceZ)
+sceZ <- normalizeRnaCounts.se(sceZ)
 ```
 
-```{r annot-cosmx}
-pred <- SingleR(test=sub, ref=sceZ, labels=sceZ$level1class, de.method="wilcox")
-sub$SingleR_label <- factor(pred$pruned.labels)
+```{r annot-cosmx, message=FALSE}
+pred <- SingleR(
+    test=sub, ref=sceZ, 
+    de.method="wilcox",
+    labels=sceZ$level1class)
 
+sub$SingleR_label <- factor(pred$pruned.labels)
 nk <- nlevels(sub$SingleR_label)
 pal <- hcl.colors(nk, "Spectral")
 
@@ -275,7 +282,11 @@ Note that other local spatial autocorrelation measures, such as Geary's C coeffi
 We can also use the neighborhood graph to investigate cell-cell interactions between different cell types annotated above. Here, we use the join count statistic implemented in the `r BiocStyle::CRANpkg("spdep")` package to quantify the tendency of cells of different types to be neighbors.
 
 ```{r cci-cosmx}
-jc <- joincount.multi(sfe$SingleR_label, colGraph(sfe, "poly2nb"), zero.policy=TRUE)
+jc <- joincount.multi(
+    zero.policy=TRUE,
+    fx=sfe$SingleR_label, 
+    listw=colGraph(sfe, "poly2nb"))
+
 head(jc[order(abs(jc[, "z-value"]), decreasing=TRUE), ])
 ```
 
