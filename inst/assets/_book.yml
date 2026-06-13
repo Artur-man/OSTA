@@ -1,5 +1,10 @@
 book:
   title: "Orchestrating Spatial Transcriptomics Analysis with Bioconductor"
+  # repo-url: https://github.com/lmweber/OSTA
+  # repo-actions: [source, issue] # source repo, new issue
+  # repo-link-target: _blank      # open in a new tab
+  # repo-subdir: "inst/pages"     # .qmd location
+  # repo-branch: devel
   chapters:
     - index.qmd
     - part: "Background"
@@ -105,3 +110,7 @@ book:
     style: "docked"
     background: "light"
     collapse-level: 5
+    tools:
+      - icon: github
+        text: GitHub
+        href: https://github.com/lmweber/OSTA
