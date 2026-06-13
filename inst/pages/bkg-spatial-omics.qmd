@@ -54,12 +54,35 @@ While the focus of the data analyses in this book is primarily on spatially-reso
 
 Tissues are three-dimensional (3D) entities that are represented as 2D slices for many of the analyses discussed here. However, there will be various emerging datasets that have measurements made along a third dimension [@Schott2024-Open-ST; @Vickovic2022-three-dimensional], whether this is directly measured (e.g. 3D imaging) or indirectly reconstructed from multiple per-slice measurements [@Schott2025-protocol]. In some cases, the analyses discussed in this book will either still apply, or can be applied successively on multiple slices.
 
-Multi-omics datasets (e.g. RNA expression and protein abundance, or RNA expression and chomatin accessibility) that are collected in a spatial context are now emerging (e.g. [@Liu2023-spatial-CITE-seq; @Zhang2023-spatial-epigenome]). Epigenomic modalities, in particular, may require alternative preprocessing steps, but some of the analyses mentioned in the chapters here could be re-used (e.g. clustering given a low-dimensional embedding) or adapted.
+Multi-omics datasets (e.g. RNA expression and protein abundance, or RNA expression and chromatin accessibility) that are collected in a spatial context are now emerging (e.g. [@Liu2023-spatial-CITE-seq; @Zhang2023-spatial-epigenome]). Epigenomic modalities, in particular, may require alternative preprocessing steps, but some of the analyses mentioned in the chapters here could be re-used (e.g. clustering given a low-dimensional embedding) or adapted.
 
 Another emerging modality within a spatial context is the measurement of metabolites, lipids, or proteins via mass spectrometry imaging (MSI), such as MALDI-MSI [@Zhang2024-MSI]; these assays are sometimes known as imaging mass spectrometry. MSI typically involves coating tissues with a matrix layer that promotes the ionization of analytes of interest (e.g. glycans; [@Palomino2024-mass]). Integration of MSI with other spatial modalities (e.g. to reveal cell types) may also be promising.
 
 
 ## Appendix
+
+::: {.callout-tip collapse="false" title="Fruther reading"}
+
+- @Moffitt2022-emerging and @Bressan2023-dawn 
+provide broad reviews of **spatial omics**, summarizing key technologies 
+across modalities, shared conceptual frameworks, and emerging biological 
+and clinical applications enabled by spatially resolved measurements.
+
+- @Rao2021-exploring, @Cheng2023-comprehensive and @Tian2023-vistas 
+introduce **spatial transcriptomics (ST)** as a framework for resolving 
+tissue architecture, and provide comprehensive reviews of ST methods that 
+cover technological advances, major experimental platforms, computational 
+challenges, and diverse biological applications.
+
+- @Moses2022-museum provide a comprehensive review of ST technologies that 
+dates “back to 1987” and places “current methods in a **historical context**”. 
+They systematically catalog ST approaches across key methodological dimensions 
+(e.g., spatial resolution, molecular throughput, transcriptome coverage), and 
+compare platforms in terms of experimental design and analytical trade-offs, 
+contextualizing methodological diversity by highlighting how approaches relate, 
+complement different experimental questions, and shape biological interpretation.
+
+:::
 
 ### References {.unnumbered}
 

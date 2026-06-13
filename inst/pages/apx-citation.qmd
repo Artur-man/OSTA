@@ -260,8 +260,23 @@ benchmark, or other, references and resources mentioned throughout the book.
 
 - @sec-seq-workflow-dlpfc: Workflow: Visium DLPFC
 - @sec-seq-workflow-visium-crc: Workflow: Visium CRC
-- @sec-seq-workflow-visium-hd-bin: Workflow: Visium HD
-- @sec-seq-workflow-visium-hd-seg: Workflow: Visium HD
+
+- @sec-seq-workflow-visium-hd-bin & @sec-seq-workflow-visium-hd-seg: Workflow: Visium HD
+
+::: {.tbl}
+
+| | |
+|-|-|
+| `r Githubpkg("Teichlab/bin2cell)")` | @Polanski2024-bin2cell |
+| `r Githubpkg("stardist/stardist")` | @Weigert2022-StarDist |
+| `r Githubpkg("The-Mitra-Lab/SMURF")` | @Guo2025-SMURF |
+| SpaceRanger v4 | [10x Genomics](https://www.10xgenomics.com/analysis-guides/segmentation-visium-hd) |
+| [Sanofi's ENACT pipeline](https://github.com/Sanofi-Public/enact-pipeline) | @Kamel2025-ENACT |
+
+: {.striped tbl-colwidths="[33,66]"}
+
+:::
+
 - @sec-img-segmentation: Segmentation
 
 ::: {.tbl}
@@ -326,7 +341,7 @@ benchmark, or other, references and resources mentioned throughout the book.
 | | |
 |-|-|
 | theory | @Cassella2022-subcell-analysis |
-| Visium HD | @Novoselsky2025-subcell-visiumhd |
+| Visium HD | @Novoselsky2026 |
 | [Bento](https://github.com/YeoLab/bento-tools) | @Mah2024-Bento |
 | `r Biocpkg("MoleculeExperiment")` | @PetersCouto2023-MoleculeExperiment |
 | `r Githubpkg("bioFAM/FISHFactor")` | @Walter2023-FISHFactor |
@@ -354,6 +369,8 @@ benchmark, or other, references and resources mentioned throughout the book.
 | `r Biocpkg("scater")` | @McCarthy2017-scater |
 | `r Biocpkg("SpaNorm")` | @Salim2025-SpaNorm |
 | theory | @Bhuva2024-library-size; @Atta2024-gene-count |
+| bulk vs. scRNA-seq | @Vallejos2017-normalization |
+| scRNA-seq benchmark | @AhlmannEltze2023-normalization |
 
 : {.striped tbl-colwidths="[33,66]"}
 
@@ -474,7 +491,7 @@ Leiden | @Traag2019-Louvain-to-Leiden |
 
 :::
 
-- @sec-crs-spatial-registration: Registration
+- @sec-crs-registration: Registration
 - @sec-crs-imputation: Imputation
 - @sec-crs-workflow-xenvis: Workflow: Xenium + Visium
 

@@ -1,4 +1,4 @@
-# Spatial registration {#sec-crs-spatial-registration}
+# Spatial registration {#sec-crs-registration}
 
 {{< include _start.qmd >}}
 

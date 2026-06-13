@@ -76,7 +76,7 @@ rownames(xen) <- make.unique(rowData(xen)$Symbol)
 To align Xenium and Visium sections, we use the affine transformation matrix 
 provided by 10x Genomics, which was obtained by registration of Xenium onto 
 Visium in Python with the [Fiji Java plug-in](https://www.10xgenomics.com/resources/analysis-guides/he-to-xenium-dapi-image-registration-with-fiji); see
-@sec-crs-spatial-registration for details.
+@sec-crs-registration for details.
 
 ```{r mtx}
 # affine matrix for aligning Xenium onto Visium
