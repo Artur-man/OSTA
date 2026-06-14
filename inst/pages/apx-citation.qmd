@@ -75,8 +75,20 @@ benchmark, or other, references and resources mentioned throughout the book.
 
 | | |
 |-|-|
-| 3D ST | @Vickovic2022-three-dimensional |
+| 3D ST | @Vickovic2022-3D |
 | Open-ST | @Schott2024-Open-ST; @Schott2025-protocol |
+| PASTE | @Zeira2022-PASTE |
+| PASTE2 | @Liu2023-PASTE2 |
+| STalign | @Clifton2023-STalign |
+| STARmap | @Wang2018-STARmap |
+| Deep-STARmap | @Sui2025-Deep-STARmap |
+| 3D MERFISH | @Fang2024-3D-MERFISH |
+| C3PO | @Cotterell2024-C3PO
+| CLARITY | @Tomer2014-CLARITY |
+| 3DISCO | @Erturk2012-3DISCO |
+| DISCO-MS | @Bhatia2022-DISCO-MS |
+| sc4D | @Rao2025-sc4D |
+| MOSAICA | @Vu2022-MOSAICA |
 | scMAGS | @Baran2023-marker | 
 | CITE-seq | @Liu2023-spatial-CITE-seq |
 | spatial omics | @Moffitt2022-emerging; @Bressan2023-dawn |
@@ -186,7 +198,7 @@ benchmark, or other, references and resources mentioned throughout the book.
 | | |
 |-|-|
 | `r Githubpkg("scverse/anndata")`` | @Virshup2024-anndata | 
-| `r Githubpkg("scverse/anndataR")` | @Deconinck2025-anndataR |
+| `r Biocpkg("anndataR")` | @Deconinck2026-anndataR |
 | `r Biocpkg("basilisk")` | @Lun2022-basilisk |
 | [reticulate](https://rstudio.github.io/reticulate/) | @Ushey2017-reticulate |
 | `r Biocpkg("zellkonverter")` | @Zappia2020-zellkonverter |
@@ -383,14 +395,35 @@ benchmark, or other, references and resources mentioned throughout the book.
 
 | | |
 |-|-|
-`r Biocpkg("BANKSY")` | @Singhal2024-BANKSY |
-`r Biocpkg("BayesSpace")` | @Zhao2021-BayesSpace |
-`r Githubpkg("CellCharter")` | @Varrone2024-CellCharter | 
-Leiden | @Traag2019-Louvain-to-Leiden |
-`r CRANpkg("PRECAST")` | @Liu2023-PRECAST | 
-`r Githubpkg("Tang-Lab-super/PROST")` | @Liang2024-PROST |
-`r Githubpkg("SpaceFlow")` | @Ren2022-SpaceFlow |
-`r Githubpkg("zhanglabtools/STAGATE")` | @Dong2022-STAGATE |
+| `r Biocpkg("BANKSY")` | @Singhal2024-BANKSY |
+| `r Biocpkg("BayesSpace")` | @Zhao2021-BayesSpace |
+| `r Githubpkg("CellCharter")` | @Varrone2024-CellCharter | 
+| Leiden | @Traag2019-Louvain-to-Leiden |
+| `r CRANpkg("PRECAST")` | @Liu2023-PRECAST |
+| `r Githubpkg("Tang-Lab-super/PROST")` | @Liang2024-PROST |
+| `r Githubpkg("SpaceFlow")` | @Ren2022-SpaceFlow |
+| `r Githubpkg("zhanglabtools/STAGATE")` | @Dong2022-STAGATE |
+| `r Biocpkg("CellAssign")` | @Zhang2019-CellAssign |
+| `r CRANpkg("scType")` | @Ianevski2022-ScType |
+| `r Biocpkg("SingleR")` | @Aran2019-SingleR |
+| `r Githubpkg("satijalab/azimuth")` | @Hao2021-Seurat |
+| `r BiocStyle::Githubpkg("scverse/scvi-tools")`'s `scANVI` | [@Xu2021-scANVI] |
+| `r Githubpkg("Teichlab/celltypist")` | @DominguezConde2022-CellTypist |
+| `scFoundation` | @Hao2024-scFoundation |
+| `scGPT` | @Cui2024-scGPT |
+| `Geneformer` | @Theodoris2023-Geneformer |
+| HCA | @Regev2017-HCA |
+| Tabula Sapiens | @TabulaSapiens2022 |
+| Tabula Muris | @TabulaMuris2018 |
+| Tabula Muris Senis | @TabulaSenis2020 |
+| SAHA | @Park2025-SAHA |
+| CELLxGENE | @Megill2021-cellxgene |
+| HPA | @Uhlen2015-HPA |
+| `r Biocpkg("scDiagnostics")` | @Christidis2026-scDiagnostics |
+| review | @Wang2024-review-spatial-domain |
+| benchmarks | @Chen2025-benchmark-clustering; @Sun2025-benchmark-clustering |
+| | @Cheng2022-benchmark-clustering; @Hu2024-benchmark-clustering |
+| | @Liu2024-network-clustering; @Xiong2025-benchmark-clustering |
 
 : {.striped tbl-colwidths="[33,66]"}
 
