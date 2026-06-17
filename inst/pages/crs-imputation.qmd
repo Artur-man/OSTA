@@ -389,7 +389,7 @@ used to impute unmeasured genes in FISH-based ST data using Tangram [@Biancalani
 book part on multi-sample single-cell analyses covers a variety 
 of batch effect correction methods and quantitative diagnostics.
  
-- @li2022-benchmarking provides a benchmarking study covering 45 paired single-cell and spatial omics datasets as well as 32 simulated datasets. The study methods like `r BiocStyle::Githubpkg("rajewsky-lab/novosparc")`, `r BiocStyle::Githubpkg("zcang/SpaOTsc")`, and `r BiocStyle::CRANpkg("rliger")` for transcript location predicion and gene expression imputation for spatial omics datasets.
+- @li2022-benchmarking provides a benchmarking study covering 45 paired single-cell and spatial omics datasets as well as 32 simulated datasets. The study methods like `r BiocStyle::Githubpkg("rajewsky-lab/novosparc")`, `r BiocStyle::Githubpkg("zcang/SpaOTsc")`, and `r BiocStyle::CRANpkg("rliger")` for transcript location prediction and gene expression imputation for spatial omics datasets.
 
 :::
 
