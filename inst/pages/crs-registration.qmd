@@ -254,6 +254,16 @@ single-cell profiles. Some of these methods could be used through R using packag
 
 ## Appendix
 
+::: {.callout-tip icon="false" title="Further reading"}
+
+- There has been a number of benchmarking studies comparing spatial alignment methods across a large selection of technologies [@hu2024-benchmarking, @dong2025-benchmarking, @yan2026-benchmarking]. Here, @yan2026-benchmarking is a recent study comparing 11 spatial alignment methods across 240 tissue sections from 14 technologies.
+  
+- @weitz2024-acrobat reports on the results of the ACROBAT 2022 Challenge on improving the accuracy and robustness of alignment/registration tasks across 4212 histopathology whole-slide images. The study serves as a nice review on various image registration methods using feature detection algorithms, and specifically those using deep learning architectures. 
+
+- @li2022-benchmarking provides a benchmarking study covering 45 paired single-cell and spatial omics datasets as well as 32 simulated datasets. The study compares cell type deconvolution and transcripts distribution prediction methods, including `r BiocStyle::Githubpkg("rajewsky-lab/novosparc")` and `r BiocStyle::Githubpkg("zcang/SpaOTsc")`.
+
+:::
+
 ### References {.unnumbered}
 
 {{< include _stop.qmd >}}
